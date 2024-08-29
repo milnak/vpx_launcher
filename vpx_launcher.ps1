@@ -18,7 +18,18 @@ function Invoke-Game {
     $buttonLaunch.Text = 'Running'
 
     Write-Verbose "Launching: $tablePath"
-    Start-Process -FilePath $PinballExe -ArgumentList '-ExtMinimized', '-Play', ('"{0}"' -f $TablePath) -NoNewWindow -Wait
+    $proc = Start-Process -FilePath $PinballExe -ArgumentList '-ExtMinimized', '-Play', ('"{0}"' -f $TablePath) -NoNewWindow -PassThru
+
+    # Games take a while to load, so show a fake progress bar.
+    for ($i = 0; $i -le $progressBar.Maximum - $progressBar.Minimum; $i++) {
+        $progressBar.Value = $i
+        Start-Sleep -Milliseconds 500
+    }
+
+    Write-Verbose 'Waiting for VPX to exit'
+    $proc.WaitForExit()
+
+    $progressBar.Value = 0
 
     $buttonLaunch.Enabled = $true
     $buttonLaunch.Text = $prevText
@@ -105,7 +116,6 @@ function Invoke-Dialog {
     $panelStatus = New-Object -TypeName 'Windows.Forms.Panel'
     $panelStatus.Dock = [Windows.Forms.DockStyle]::Bottom
     $panelStatus.Height = 100
-    $panelStatus.Width = 300
 
     $label1 = New-Object -TypeName 'Windows.Forms.Label'
     $label1.Text = ''
@@ -122,6 +132,16 @@ function Invoke-Dialog {
     $label1.Width = 440
     $label2.AutoSize = $false
     $panelStatus.Controls.Add($label2)
+
+    $progressBar = New-Object -TypeName 'Windows.Forms.ProgressBar'
+    $progressBar.Top = 70
+    $progressBar.Left = 10
+    $progressBar.Width = 560
+    $progressBar.Height = 20
+    $progressBar.Minimum = 0
+    $progressBar.Maximum = 9
+    $progressBar.Value = 0
+    $panelStatus.Controls.Add($progressBar)
 
     $buttonLaunch = New-Object -TypeName 'Windows.Forms.Button'
     $buttonLaunch.Location = New-Object -TypeName 'Drawing.Size' -ArgumentList 450, 0
