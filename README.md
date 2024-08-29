@@ -2,5 +2,4 @@
 
  Super simple launcher, designed primarily for my needs.  Might add stuff (machine preview) later.
 
- "tables.csv" contains the metadata for tables.
- 
+ "vpx_launcher.csv" contains the metadata for tables, but is optional.  Filenames are parsed to try to determine name, manufacturer and year.
