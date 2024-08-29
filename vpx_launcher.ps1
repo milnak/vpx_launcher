@@ -1,3 +1,4 @@
+# BUGBUG: Bobby Orr doesn't show  up until sorted.
 Param(
     [string]$TablePath = 'D:\Visual Pinball\Tables',
     [string]$RomPath = 'D:\Visual Pinball\VPinMAME\roms',
@@ -29,8 +30,8 @@ function Invoke-Dialog {
     $listView.MultiSelect = $false
     $listView.View = [Windows.Forms.View]::Details
     $listView.Font = New-Object  System.Drawing.Font('Consolas', 11, [Drawing.FontStyle]::Regular)
-    $listView.Columns.Add('Table', 400) | Out-Null
-    $listView.Columns.Add('Manufact.', 100) | Out-Null
+    $listView.Columns.Add('Table', 375) | Out-Null
+    $listView.Columns.Add('Manufact.', 125) | Out-Null
     $listView.Columns.Add('Year', 50) | Out-Null
     $panelListView.Controls.Add($listView)
 
@@ -50,7 +51,6 @@ function Invoke-Dialog {
                 $script:selectedItem = $listView.SelectedItems.Tag + '.vpx'
 
                 $label1.Text = $listView.SelectedItems.Text
-                $label2.Text = $listView.SelectedItems.Tag
             }
         })
 
@@ -75,6 +75,24 @@ function Invoke-Dialog {
 
         })
 
+    $listView.add_MouseDoubleClick(
+        {
+            # $_ : Windows.Forms.MouseEventArgs
+            $item = Join-Path $TablePath ($listView.SelectedItems.Tag + '.vpx')
+
+            # TODO: Refactor passing $item
+            $prevText = $buttonLaunch.Text
+            $buttonLaunch.Enabled = $false
+            $buttonLaunch.Text = 'Running'
+
+            Start-Process -FilePath $ExePath -ArgumentList '-ExtMinimized', '-Play', ('"{0}"' -f $item) -NoNewWindow -Wait
+
+            $buttonLaunch.Enabled = $true
+            $buttonLaunch.Text = $prevText
+
+        }
+    )
+
     ### STATUS PANEL
 
     $panelStatus = New-Object -TypeName 'Windows.Forms.Panel'
@@ -90,7 +108,7 @@ function Invoke-Dialog {
     $panelStatus.Controls.Add($label1)
 
     $label2 = New-Object -TypeName 'Windows.Forms.Label'
-    $label2.Text = ""
+    $label2.Text = ('{0} Machines' -f $listView.Items.Count)
     $label2.Location = New-Object -TypeName 'Drawing.Point' -ArgumentList 3, 40
     $label2.AutoSize = $true
     $panelStatus.Controls.Add($label2)
@@ -133,26 +151,42 @@ function Invoke-Dialog {
     $form.ShowDialog()
 }
 
+$totalSize = 0
 $tableData = Get-Content -LiteralPath 'tables.csv' | ConvertFrom-Csv -Header 'Filename', 'Table', 'Manufacturer', 'Year', 'ROM'
 $tables = foreach ($item in (Get-ChildItem -File -LiteralPath $TablePath -Include '*.vpx')) {
-    $name = $item.BaseName
-    $found = $tableData | Where-Object Filename -eq $name
+    $baseName = $item.BaseName
+    $found = $tableData | Where-Object Filename -eq $baseName
+
+    $totalSize += $item.Length
 
     if (!$found) {
-        Write-Warning ('Table not found: "{0}"' -f $name)
+        Write-Warning ('Table not found in database: "{0}"' -f $baseName)
+        [PSCustomObject]@{
+            Filename     = [IO.Path]::GetFileNameWithoutExtension($item.FullName)
+            Table        = $baseName
+            Manufacturer = '?'
+            Year         = '?'
+        }
     }
     else {
         if ($found.ROM.Length -eq 0) {
             # No ROM needed
+            if ([int]$found.Year -gt 1977) {
+                # Machines after 1977 likely require a ROM.
+                Write-Warning ('Database claims table "{0}" has no ROM?' -f $baseName)
+            }
+
             $found
         }
         else {
             $rom = $found.ROM + '.zip'
-            if (!(Get-Item -ErrorAction SilentlyContinue -LiteralPath (Join-Path $RomPath $rom))) {
-                Write-Warning ('Table "{0}" ROM "{1}" not found' -f $name, $rom)
+            $romItem = Get-Item -ErrorAction SilentlyContinue -LiteralPath (Join-Path $RomPath $rom)
+            if (!$romItem) {
+                Write-Warning ('Table "{0}" ROM "{1}" not found' -f $baseName, $rom)
             }
             else {
                 # ROM found
+                $totalSize += $romItem.Size
                 $found
             }
         }
@@ -164,5 +198,6 @@ if ($tables.Count -eq 0) {
     return
 }
 
+Write-Host ('Table and ROM size: {0:N0} bytes' -f $totalSize)
 if ((Invoke-Dialog -Data $tables) -eq [Windows.Forms.DialogResult]::OK) {
 }
