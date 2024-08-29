@@ -167,8 +167,12 @@ function Read-Database {
 
     $totalSize = 0
     $tableData = $null
-    if ($DatabasePath.Length -ne 0) {
-        $tableData = Get-Content -LiteralPath $DatabasePath | ConvertFrom-Csv -Header 'Filename', 'Table', 'Manufacturer', 'Year', 'ROM'
+    if (![string]::IsNullOrEmpty($DatabasePath)) {
+        Get-Item -LiteralPath $DatabasePath -ErrorAction Stop | Out-Null
+
+        $tableData = Get-Content -LiteralPath $DatabasePath `
+        | ConvertFrom-Csv -Header 'Filename', 'Table', 'Manufacturer', 'Year', 'ROM' `
+        | Sort-Object -Unique Filename
     }
 
     $data = foreach ($item in (Get-ChildItem -File -LiteralPath $TablePath -Include '*.vpx')) {
@@ -178,8 +182,6 @@ function Read-Database {
         $totalSize += $item.Length
 
         if (!$found) {
-            Write-Warning ('Table not found in database: "{0}"' -f $baseName)
-
             # Use regex to try to guess table, manufacturer and year from filename.
             if ($baseName -match '(.+)[ _]\((.+) (\d{4})\)') {
                 [PSCustomObject]@{
@@ -188,6 +190,7 @@ function Read-Database {
                     Manufacturer = $matches[2]
                     Year         = $matches[3]
                 }
+                Write-Warning ('Not found in database: "{0}","{1}","{2}","{3}",""' -f $item.BaseName, $matches[1], $matches[2], $matches[3])
             }
             else {
                 [PSCustomObject]@{
@@ -196,17 +199,19 @@ function Read-Database {
                     Manufacturer = '?'
                     Year         = '?'
                 }
+                Write-Warning ('Not found in database: "{0}"' -f $baseName)
             }
         }
         else {
-            if ($found.ROM.Length -eq 0) {
+            # Found in database.
+            if ([string]::IsNullOrEmpty($found.ROM)) {
                 # No ROM needed
                 if ([int]$found.Year -gt 1977) {
                     # Machines after 1977 likely require a ROM.
                     Write-Warning ('Database claims table "{0}" has no ROM?' -f $baseName)
                 }
             }
-            elseif ($RomPath.Length -ne 0) {
+            elseif (![string]::IsNullOrEmpty($RomPath)) {
                 # If $RomPath specified, check to see if the rom file exists.
                 $rom = $found.ROM + '.zip'
                 $romItem = Get-Item -ErrorAction SilentlyContinue -LiteralPath (Join-Path $RomPath $rom)
@@ -225,12 +230,12 @@ function Read-Database {
                 Manufacturer = $found.Manufacturer
                 Year         = $found.Year
             }
-
         }
     }
 
-    # Return list sorted by table (friendly name).
-    $data.GetEnumerator() | Sort-Object -Property Table
+    Write-Verbose 'Sorting database'
+    # Remove sort by table name
+    $data.GetEnumerator() | Sort-Object -Unique Table
 
     Write-Verbose ('Table and ROM size: {0:N0} bytes' -f $totalSize)
 }
