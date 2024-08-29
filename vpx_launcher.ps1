@@ -1,9 +1,9 @@
 [CmdletBinding()]
 Param(
-    [string]$PinballExe = 'D:\Visual Pinball\VPinballX64.exe',
-    [string]$TablePath = 'D:\Visual Pinball\Tables',
-    [string]$RomPath = 'D:\Visual Pinball\VPinMAME\roms',
-    [string]$Database = '.\vpx_launcher.csv'
+    [string]$PinballExe = 'VPinballX64.exe',
+    [string]$TablePath = 'Tables',
+    [string]$RomPath = 'VPinMAME\roms',
+    [string]$Database = 'vpx_launcher.csv'
 )
 
 function Invoke-Game {
@@ -17,6 +17,7 @@ function Invoke-Game {
     $buttonLaunch.Enabled = $false
     $buttonLaunch.Text = 'Running'
 
+    Write-Verbose "Launching: $tablePath"
     Start-Process -FilePath $PinballExe -ArgumentList '-ExtMinimized', '-Play', ('"{0}"' -f $TablePath) -NoNewWindow -Wait
 
     $buttonLaunch.Enabled = $true
@@ -150,6 +151,11 @@ function Invoke-Dialog {
     $form.Text = 'VPX Launcher'
     $form.Width = 600
     $form.Height = 600
+    $form.FormBorderStyle = [Windows.Forms.FormBorderStyle]::FixedSingle
+    $form.AcceptButton = $buttonLaunch
+    $form.MaximizeBox = $false
+    $form.MinimizeBox = $false
+
     $form.ShowDialog()
 }
 
@@ -199,8 +205,6 @@ function Read-Database {
                     # Machines after 1977 likely require a ROM.
                     Write-Warning ('Database claims table "{0}" has no ROM?' -f $baseName)
                 }
-
-                $found
             }
             elseif ($RomPath.Length -ne 0) {
                 # If $RomPath specified, check to see if the rom file exists.
@@ -212,9 +216,16 @@ function Read-Database {
                 else {
                     # ROM found
                     $totalSize += $romItem.Size
-                    $found
                 }
             }
+
+            [PSCustomObject]@{
+                Filename     = $item.Name
+                Table        = $found.Table
+                Manufacturer = $found.Manufacturer
+                Year         = $found.Year
+            }
+
         }
     }
 
