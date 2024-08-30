@@ -115,12 +115,14 @@ function Invoke-Dialog {
 
     $panelStatus = New-Object -TypeName 'Windows.Forms.Panel'
     $panelStatus.Dock = [Windows.Forms.DockStyle]::Bottom
-    $panelStatus.Height = 100
+    $panelStatus.Height = 111
+    $panelStatus.BackColor = [Drawing.Color]::FromArgb(115, 118, 255)
+    $panelStatus.ForeColor = [Drawing.Color]::FromArgb(239, 244, 255)
 
     $label1 = New-Object -TypeName 'Windows.Forms.Label'
     $label1.Text = ''
     $label1.Font = New-Object  System.Drawing.Font('Segoe UI', 16, [Drawing.FontStyle]::Bold)
-    $label1.Location = New-Object -TypeName 'Drawing.Point' -ArgumentList 0, 0
+    $label1.Left = 5
     $label1.Width = 440
     $label1.Height = 30
     $label1.AutoSize = $false
@@ -128,7 +130,8 @@ function Invoke-Dialog {
 
     $label2 = New-Object -TypeName 'Windows.Forms.Label'
     $label2.Text = ('{0} Machines' -f $listView.Items.Count)
-    $label2.Location = New-Object -TypeName 'Drawing.Point' -ArgumentList 3, 40
+    $label2.Left = 7
+    $label2.Top = 35
     $label1.Width = 440
     $label2.AutoSize = $false
     $panelStatus.Controls.Add($label2)
@@ -144,9 +147,11 @@ function Invoke-Dialog {
     $panelStatus.Controls.Add($progressBar)
 
     $buttonLaunch = New-Object -TypeName 'Windows.Forms.Button'
-    $buttonLaunch.Location = New-Object -TypeName 'Drawing.Size' -ArgumentList 450, 0
+    $buttonLaunch.Location = New-Object -TypeName 'Drawing.Size' -ArgumentList 453, 15
     $buttonLaunch.Size = New-Object -TypeName 'Drawing.Size' -ArgumentList 118, 40
     $buttonLaunch.Text = 'Launch'
+    $buttonLaunch.BackColor = [Drawing.Color]::FromArgb(216, 218, 254)
+    $buttonLaunch.ForeColor = [Drawing.Color]::FromArgb(72, 78, 150)
     $panelStatus.Controls.Add($buttonLaunch)
 
     $buttonLaunch.Add_Click(
