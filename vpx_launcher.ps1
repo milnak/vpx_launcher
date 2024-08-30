@@ -2,9 +2,14 @@
 Param(
     [string]$PinballExe = 'VPinballX64.exe',
     [string]$TablePath = 'Tables',
-    [string]$RomPath = 'VPinMAME\roms',
     [string]$Database = 'vpx_launcher.csv'
 )
+
+#  ___             _            ___
+# |_ _|_ ___ _____| |_____ ___ / __|__ _ _ __  ___
+#  | || ' \ V / _ \ / / -_)___| (_ / _` | '  \/ -_)
+# |___|_||_\_/\___/_\_\___|    \___\__,_|_|_|_\___|
+#
 
 function Invoke-Game {
     Param(
@@ -34,6 +39,12 @@ function Invoke-Game {
     $buttonLaunch.Enabled = $true
     $buttonLaunch.Text = $prevText
 }
+
+#  ___             _           ___  _      _
+# |_ _|_ ___ _____| |_____ ___|   \(_)__ _| |___  __ _
+#  | || ' \ V / _ \ / / -_)___| |) | / _` | / _ \/ _` |
+# |___|_||_\_/\___/_\_\___|   |___/|_\__,_|_\___/\__, |
+#                                                |___/
 
 function Invoke-Dialog {
     Param($Data)
@@ -184,6 +195,52 @@ function Invoke-Dialog {
     $form.ShowDialog()
 }
 
+#  ___             _     _  _ _    _                ___       _
+# | _ \___ __ _ __| |___| || (_)__| |_ ___ _ _ _  _|   \ __ _| |_
+# |   / -_) _` / _` |___| __ | (_-<  _/ _ \ '_| || | |) / _` |  _|
+# |_|_\___\__,_\__,_|   |_||_|_/__/\__\___/_|  \_, |___/\__,_|\__|
+#                                              |__/
+
+function Read-HistoryDat {
+    param (
+        [Parameter(Mandatory)][string]$DatabasePath
+    )
+
+    $roms = $null
+    $readingBio = $false
+    [string[]]$bio = $null
+
+    # History.DAT file is optional.
+    foreach ($line in (Get-Content -ErrorAction SilentlyContinue -LiteralPath $DatabasePath)) {
+        if ($line.Length -ge 6 -and $line.Substring(0, 6) -eq '$info=') {
+            $roms = $line.Substring(6).TrimEnd(',') -split ','
+        }
+        elseif ($line.Length -ge 4 -and $line.Substring(0, 4) -eq '$bio') {
+            $bio = $null
+            $readingBio = $true
+        }
+        elseif ($line.Length -ge 4 -and $line.SubString(0, 4) -eq '$end') {
+            foreach ($rom in $roms) {
+                [PSCustomObject]@{
+                    ROM = $rom
+                    Bio = $bio
+                }
+            }
+            $readingBio = $false
+            $bio = $null
+        }
+        elseif ($readingBio) {
+            $bio += $line
+        }
+    }
+}
+
+#  ___             _     ___       _        _
+# | _ \___ __ _ __| |___|   \ __ _| |_ __ _| |__  __ _ ___ ___
+# |   / -_) _` / _` |___| |) / _` |  _/ _` | '_ \/ _` (_-</ -_)
+# |_|_\___\__,_\__,_|   |___/\__,_|\__\__,_|_.__/\__,_/__/\___|
+#
+
 function Read-Database {
     param (
         [string]$DatabasePath,
@@ -265,10 +322,18 @@ function Read-Database {
     Write-Verbose ('Table and ROM size: {0:N0} bytes' -f $totalSize)
 }
 
-# Verify paths. Database and RomPath are optional.
+#  __  __      _
+# |  \/  |__ _(_)_ _
+# | |\/| / _` | | ' \
+# |_|  |_\__,_|_|_||_|
+#
 
+# Verify paths. Database path is optional.
 Get-Item -ErrorAction Stop -LiteralPath $PinballExe | Out-Null
 Get-Item -ErrorAction Stop -LiteralPath $TablePath | Out-Null
+
+# Try to read VPinMAME ROM path from registry.
+$RomPath = (Get-ItemProperty -ErrorAction SilentlyContinue -LiteralPath 'HKCU:\Software\Freeware\Visual PinMame\globals').rompath
 
 # Read in database
 
@@ -277,6 +342,12 @@ if ($tables.Count -eq 0) {
     Write-Warning "No tables found in $TablePath"
     return
 }
+
+# TODO: Display VPinMAME ROM history in a text window.
+# $historyDat = (Get-ItemProperty -ErrorAction SilentlyContinue -LiteralPath 'HKCU:\Software\Freeware\Visual PinMame\globals').history_file
+# $history = Read-HistoryDat -DatabasePath $historyDat
+# Write-Host -ForegroundColor Red "'$($found.Table)' Bio:"
+# ($history | Where-Object ROM -eq $found.ROM).Bio | ForEach-Object { Write-Host -ForegroundColor DarkCyan $_ }
 
 if ((Invoke-Dialog -Data $tables) -eq [Windows.Forms.DialogResult]::OK) {
 }
