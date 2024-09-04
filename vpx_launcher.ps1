@@ -5,6 +5,8 @@ Param(
     [string]$Database = 'vpx_launcher.csv'
 )
 
+$launcherVersion = '1.0'
+
 #  ___             _            ___
 # |_ _|_ ___ _____| |_____ ___ / __|__ _ _ __  ___
 #  | || ' \ V / _ \ / / -_)___| (_ / _` | '  \/ -_)
@@ -184,7 +186,7 @@ function Invoke-Dialog {
 
     $form.Add_Activated({ $listView.Select() })
 
-    $form.Text = 'VPX Launcher'
+    $form.Text = ('VPX Launcher v{0}' -f $launcherVersion)
     $form.Width = 600
     $form.Height = 600
     $form.FormBorderStyle = [Windows.Forms.FormBorderStyle]::FixedSingle
