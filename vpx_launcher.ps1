@@ -388,6 +388,8 @@ function Read-VpxMetadata {
     }
 
     Write-Verbose ('End metadata {0}s' -f ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalSeconds))
+
+    $fileStream.Dispose()
 }
 
 #######################################################################################################################
