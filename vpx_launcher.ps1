@@ -2,7 +2,8 @@
 Param(
     [string]$PinballExe = 'VPinballX64.exe',
     [string]$TablePath = 'Tables',
-    [string]$Database = 'vpx_launcher.csv'
+    [string]$Database = 'vpx_launcher.csv',
+    [switch]$Benchmark
 )
 
 $launcherVersion = '1.1'
@@ -105,8 +106,10 @@ function Read-VpxMetadata {
 
     # https://learn.microsoft.com/en-us/dotnet/api/system.io.filestream?view=net-8.0
     $fileStream = New-Object -TypeName 'IO.FileStream' -ArgumentList ($Path, [System.IO.FileMode]::Open, [IO.FileAccess]::Read)
+    if (!$fileStream) { return }
     # https://learn.microsoft.com/en-us/dotnet/api/system.io.binaryreader?view=net-8.0
     $fileReader = New-Object -TypeName 'IO.BinaryReader' -ArgumentList $fileStream
+    if (!$fileReader) { return }
 
     #  ___             _   _  _             _
     # | _ \___ __ _ __| | | || |___ __ _ __| |___ _ _
@@ -210,7 +213,6 @@ function Read-VpxMetadata {
     # |_|_\___\__,_\__,_| |___/|_|_| \___\__|\__\___/_|  \_, |
     #                                                    |__/
 
-    Write-Verbose 'Start dirtree'
     $StartTime = Get-Date
 
     # bbat->SS-follow( header->dirent_start );
@@ -221,6 +223,10 @@ function Read-VpxMetadata {
 
     $dirtree = @()
     for ($i = 0; $i -lt $buflen / 128; $i++) {
+        # NOTE: dirtree can be large (e.g. Machine Bride of Pinbot). We're just interested in first few entries, so drop out after a few
+        # for performance.
+        if ($i -ge 16 ) { break }
+
         $p = $i * 128
 
         $type = $dirtree_blocks[$p + 0x40 + 0x02]
@@ -235,7 +241,7 @@ function Read-VpxMetadata {
             + (([uint32]$Buffer[$Offset + 1]) -shl 8)
         if ($name_len -gt 0x40) { throw 'Invalid name_len' }
 
-        $name = [Text.Encoding]::Unicode.GetString($dirtree_blocks[($p + $0)..($p + $name_len - 3)]) # REVIEW: Why -3?
+        $name = [Text.Encoding]::Unicode.GetString($dirtree_blocks[($p + $0)..($p + $name_len - 1)])
 
         # Size  = Read-U32 -Buffer $dirtree_blocks -Offset ($p + 0x40 + 0x38)
         $Buffer = $dirtree_blocks
@@ -263,7 +269,9 @@ function Read-VpxMetadata {
             # Child = Read-U32 -Buffer $dirtree_blocks -Offset ($p + 0x40 + 0x0c)
         }
     }
-    Write-Verbose ('End dirtree {0}s' -f ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalSeconds))
+    if ($Benchmark) {
+        Write-Host ('{0} dirtree {1:n0}ms' -f $Path, ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
+    }
 
     if ($VerbosePreference -eq 'Continue') {
         # DirTree identifiers
@@ -287,14 +295,15 @@ function Read-VpxMetadata {
 
     $sb_start = read-U32 -Buffer $dirtree_blocks -Offset 0x74
 
-    Write-Verbose 'Start block chain'
     $StartTime = Get-Date
 
     # block chain as data for small-files
     # bbat->SS-follow( sb_start );
     $sb_blocks = SS-Follow -Buffer $bbat.data -Count $bbat.count -P $sb_start
 
-    Write-Verbose ('End block chain {0}s' -f ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalSeconds))
+    if ($Benchmark) {
+        Write-Host ('{0} Block chain {1:n0}ms' -f $Path, ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
+    }
 
     #  __  __     _           _      _
     # |  \/  |___| |_ __ _ __| |__ _| |_ __ _
@@ -302,7 +311,6 @@ function Read-VpxMetadata {
     # |_|  |_\___|\__\__,_\__,_\__,_|\__\__,_|
     #
 
-    Write-Verbose 'Start metadata'
     $StartTime = Get-Date
 
     # Metadata fields:
@@ -387,7 +395,9 @@ function Read-VpxMetadata {
         }
     }
 
-    Write-Verbose ('End metadata {0}s' -f ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalSeconds))
+    if ($Benchmark) {
+        Write-Host ('{0} Metadata {1:n0}ms' -f $Path, ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
+    }
 
     $fileStream.Dispose()
 }
@@ -469,7 +479,7 @@ function Invoke-Dialog {
     foreach ($item in $Data) {
         $listItem = New-Object -TypeName 'Windows.Forms.ListViewItem'
         $listItem.Text = $item.Table
-        $listItem.Tag = $item.Filename
+        $listItem.Tag = $item.FileName
         $listItem.SubItems.Add($item.Manufacturer) | Out-Null
         $listItem.SubItems.Add($item.Year) | Out-Null
         $listView.Items.Add($listItem) | Out-Null
@@ -647,77 +657,37 @@ function Read-HistoryDat {
     }
 }
 
-#  ___             _     ___       _        _
-# | _ \___ __ _ __| |___|   \ __ _| |_ __ _| |__  __ _ ___ ___
-# |   / -_) _` / _` |___| |) / _` |  _/ _` | '_ \/ _` (_-</ -_)
-# |_|_\___\__,_\__,_|   |___/\__,_|\__\__,_|_.__/\__,_/__/\___|
+#  ___                      ___ _ _
+# | _ \__ _ _ _ ___ ___ ___| __(_) |___ _ _  __ _ _ __  ___ ___
+# |  _/ _` | '_(_-</ -_)___| _|| | / -_) ' \/ _` | '  \/ -_|_-<
+# |_| \__,_|_| /__/\___|   |_| |_|_\___|_||_\__,_|_|_|_\___/__/
 #
 
-function Read-Database {
+function Parse-Filenames {
     param (
-        [string[]]$VpxFiles,
-        [string]$DatabasePath,
-        [string]$RomPath
+        [string[]]$VpxFiles
     )
-
-    $tableData = $null
-    if (![string]::IsNullOrEmpty($DatabasePath)) {
-        if (Test-Path -LiteralPath $DatabasePath -PathType Leaf) {
-            $tableData = Get-Content -LiteralPath $DatabasePath `
-            | ConvertFrom-Csv -Header 'Filename', 'Table', 'Manufacturer', 'Year', 'ROM' `
-            | Sort-Object -Unique Filename
-        }
-    }
 
     $data = foreach ($vpxFile in $VpxFiles) {
         $baseName = [IO.Path]::GetFileNameWithoutExtension($vpxFile)
-        $found = $tableData | Where-Object Filename -eq $baseName
 
-        if (!$found) {
-            # Use regex to try to guess table, manufacturer and year from filename.
-            if ($baseName -match '(.+)[ _]\((.+) (\d{4})\)') {
-                [PSCustomObject]@{
-                    Filename     = $vpxFile
-                    Table        = $matches[1]
-                    Manufacturer = $matches[2]
-                    Year         = $matches[3]
-                }
-                Write-Warning ('Not found in database: "{0}","{1}","{2}","{3}",""' -f $vpxFile, $matches[1], $matches[2], $matches[3])
-            }
-            else {
-                [PSCustomObject]@{
-                    Filename     = $vpxFile
-                    Table        = $baseName
-                    Manufacturer = '?'
-                    Year         = '?'
-                }
-                Write-Warning ('Not found in database: "{0}"' -f $baseName)
+        # Use regex to try to guess table, manufacturer and year from filename.
+        if ($baseName -match '(.+)[ _]\((.+) (\d{4})\)') {
+            [PSCustomObject]@{
+                FileName     = $vpxFile
+                Table        = $matches[1]
+                Manufacturer = $matches[2]
+                Year         = $matches[3]
             }
         }
         else {
-            # Found in database.
-            if ([string]::IsNullOrEmpty($found.ROM)) {
-                # No ROM needed
-                if ([int]$found.Year -gt 1977) {
-                    # Machines after 1977 likely require a ROM.
-                    Write-Warning ('Database claims table "{0}" has no ROM?' -f $baseName)
-                }
-            }
-            elseif (![string]::IsNullOrEmpty($RomPath)) {
-                # If $RomPath specified, check to see if the rom file exists.
-                $rom = $found.ROM + '.zip'
-                $romItem = Get-Item -ErrorAction SilentlyContinue -LiteralPath (Join-Path $RomPath $rom)
-                if (!$romItem) {
-                    Write-Warning ('Table "{0}" ROM "{1}" not found' -f $baseName, $rom)
-                }
-            }
-
             [PSCustomObject]@{
-                Filename     = $vpxFile
-                Table        = $found.Table
-                Manufacturer = $found.Manufacturer
-                Year         = $found.Year
+                FileName     = $vpxFile
+                Table        = $baseName
+                Manufacturer = '?'
+                Year         = '?'
             }
+            Write-Warning ('Unable to parse filename "{0}"' -f $baseName)
         }
     }
 
@@ -730,25 +700,32 @@ function Read-Database {
 # |_|  |_\__,_|_|_||_|
 #
 
-# Verify paths. Database path is optional.
+# Verify paths.
 Get-Item -ErrorAction Stop -LiteralPath $PinballExe | Out-Null
 Get-Item -ErrorAction Stop -LiteralPath $TablePath | Out-Null
-
-# Try to read VPinMAME ROM path from registry.
-$RomPath = (Get-ItemProperty -ErrorAction SilentlyContinue -LiteralPath 'HKCU:\Software\Freeware\Visual PinMame\globals').rompath
 
 $vpxFiles = (Get-ChildItem -File -LiteralPath $TablePath -Include '*.vpx').Name
 
 # Read in database
 
-$tables = Read-Database -VpxFiles $vpxFiles -DatabasePath $Database -RomPath $RomPath
+$tables = Parse-Filenames -VpxFiles $vpxFiles
 if ($tables.Count -eq 0) {
     Write-Warning "No tables found in $TablePath"
     return
 }
 
+if ($Benchmark) {
+    'Duration: {0:n0}ms' -f ((Measure-Command -Expression {
+                foreach ($table in $tables) {
+                    Read-VpxMetadata -Path (Join-Path -Path $TablePath -ChildPath $table.FileName) | Out-Null
+                }
+            }).TotalMilliseconds)
+    return
+}
+
 # TODO: Display VPinMAME ROM history in a text window.
-# $historyDat = (Get-ItemProperty -ErrorAction SilentlyContinue -LiteralPath 'HKCU:\Software\Freeware\Visual PinMame\globals').history_file
+# $vpmRegistry = Get-ItemProperty -ErrorAction SilentlyContinue -LiteralPath 'HKCU:\Software\Freeware\Visual PinMame\globals'
+# $historyDat = $vpmRegistry.history_file
 # $history = Read-HistoryDat -DatabasePath $historyDat
 # Write-Host -ForegroundColor Red "'$($found.Table)' Bio:"
 # ($history | Where-Object ROM -eq $found.ROM).Bio | ForEach-Object { Write-Host -ForegroundColor DarkCyan $_ }
