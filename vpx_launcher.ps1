@@ -495,7 +495,7 @@ function Invoke-Dialog {
                 if ($meta.AuthorName) {
                     $text += "by $($meta.AuthorName)"
                 }
-                $label2.Text = $text.Trim()
+                $label2.Text = $text
             }
         })
 
@@ -660,11 +660,11 @@ function Read-Database {
 
     $tableData = $null
     if (![string]::IsNullOrEmpty($DatabasePath)) {
-        Get-Item -LiteralPath $DatabasePath -ErrorAction Stop | Out-Null
-
-        $tableData = Get-Content -LiteralPath $DatabasePath `
-        | ConvertFrom-Csv -Header 'Filename', 'Table', 'Manufacturer', 'Year', 'ROM' `
-        | Sort-Object -Unique Filename
+        if (Test-Path -LiteralPath $DatabasePath -PathType Leaf) {
+            $tableData = Get-Content -LiteralPath $DatabasePath `
+            | ConvertFrom-Csv -Header 'Filename', 'Table', 'Manufacturer', 'Year', 'ROM' `
+            | Sort-Object -Unique Filename
+        }
     }
 
     $data = foreach ($vpxFile in $VpxFiles) {
