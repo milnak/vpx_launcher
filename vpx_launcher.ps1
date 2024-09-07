@@ -676,7 +676,7 @@ function Parse-Filenames {
         $baseName = [IO.Path]::GetFileNameWithoutExtension($vpxFile)
 
         # Use regex to try to guess table, manufacturer and year from filename.
-        if ($baseName -match '(.+)[ _]\((.+) (\d{4})\)') {
+        if ($baseName -match '(.+)[ _]?\((.+)(\d{4})\)') {
             [PSCustomObject]@{
                 FileName     = $vpxFile
                 Table        = $matches[1]
