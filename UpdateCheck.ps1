@@ -26,7 +26,7 @@ $tag = $json.tag_name[0] -replace '-','.'
 "Local version:  $vpxVer"
 
 if ($vpxVer -ne $tag) {
-    Write-Host -ForegroundColor Yellow 'VPX Update available.'
+    Write-Host -ForegroundColor Yellow 'VPX Update available from https://github.com/vpinball/vpinball/releases'
 }
 
 ### Visual PinMAME
@@ -55,6 +55,6 @@ $tag = $json.tag_name[0] -replace '-','.'
 "Local version:  $vpmVer"
 
 if ($vpmVer -ne $tag) {
-    Write-Host -ForegroundColor Yellow 'VPM Update available.'
+    Write-Host -ForegroundColor Yellow 'VPM Update available from https://github.com/vpinball/pinmame/releases'
 }
 
