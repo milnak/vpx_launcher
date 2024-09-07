@@ -8,5 +8,4 @@
 
 Notes:
 
-* "vpx_launcher.csv" contains the metadata for tables, but is optional.  Filenames are parsed to try to determine name, manufacturer and year.
 * Click on headers to sort by that column.
