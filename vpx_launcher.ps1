@@ -80,10 +80,13 @@ function SS-Follow {
     $Bat = [uint32]0xfffffffdL
     $Eof = [uint32]0xfffffffeL
 
+    # "Last Action Hero (Data East 1993) VPW 2.0.vpx" had this in sbat->start table, so check for this as well.
+    $Unknown = [uint32]0xffffffffL
+
     $blocks = @()
 
     for ($i = 0; $i -lt $Count) {
-        if ($P -in $Eof, $Bat, $MetaBat) { break }
+        if ($P -in $Eof, $Bat, $MetaBat, $Unknown) { break }
         $blocks += $P
 
         # $P = Read-U32 -Buffer $Buffer -Offset ($P * 4)
@@ -189,6 +192,7 @@ function Read-VpxMetadata {
     # NOTE: bbat.data is byte[], but should be treated as uint32[]
     $bbat.data = SS-LoadBigBlocks -Blocks $header.bbat_blocks
     $bbat.count = $bbat.data.Length / 4
+
     Write-Verbose ('bbat{0}' -f ($bbat | Out-String))
 
     # SS-DebugAllocTable -Buffer $bbat.data -Length $bbat.count
