@@ -454,6 +454,8 @@ $metadataCache = @{}
 function Invoke-Dialog {
     Param($Data)
 
+    # Color palette suggested by https://coolors.co/7376ff-f9f8f8-cdd3ce-bbb5bd-141b41
+
     $script:listViewSort = @{
         Column     = 0
         Descending = $false
@@ -475,9 +477,14 @@ function Invoke-Dialog {
     $listView.MultiSelect = $false
     $listView.View = [Windows.Forms.View]::Details
     $listView.Font = New-Object  System.Drawing.Font('Consolas', 11, [Drawing.FontStyle]::Regular)
+    $listView.BackColor = [Drawing.Color]::FromArgb(115, 118, 255) # Medium slate blue
+    $listView.ForeColor = [Drawing.Color]::FromArgb(249, 248, 248) # Seasalt
+
+
     $listView.Columns.Add('Table', 375) | Out-Null
     $listView.Columns.Add('Manufact.', 125) | Out-Null
     $listView.Columns.Add('Year', 50) | Out-Null
+
     $panelListView.Controls.Add($listView)
 
     foreach ($item in $Data) {
@@ -550,13 +557,14 @@ function Invoke-Dialog {
     $panelStatus = New-Object -TypeName 'Windows.Forms.Panel'
     $panelStatus.Dock = [Windows.Forms.DockStyle]::Bottom
     $panelStatus.Height = 111
-    $panelStatus.BackColor = [Drawing.Color]::FromArgb(115, 118, 255)
-    $panelStatus.ForeColor = [Drawing.Color]::FromArgb(239, 244, 255)
+    $panelStatus.BackColor = [Drawing.Color]::FromArgb(20, 27, 65) # Space cadet
+    $panelStatus.ForeColor = [Drawing.Color]::FromArgb(187, 181, 189) # French gray
 
     $label1 = New-Object -TypeName 'Windows.Forms.Label'
     $label1.Text = ''
     $label1.Font = New-Object  System.Drawing.Font('Segoe UI', 16, [Drawing.FontStyle]::Bold)
     $label1.Left = 5
+    $label1.Top = 4
     $label1.Width = 440
     $label1.Height = 30
     $label1.AutoSize = $false
@@ -566,7 +574,7 @@ function Invoke-Dialog {
     $label2 = New-Object -TypeName 'Windows.Forms.Label'
     $label2.Text = ''
     $label2.Left = 7
-    $label2.Top = 35
+    $label2.Top = 37
     $label2.Height = 20
     $label2.Width = 400
     $label2.AutoSize = $false
@@ -576,19 +584,23 @@ function Invoke-Dialog {
     $progressBar = New-Object -TypeName 'Windows.Forms.ProgressBar'
     $progressBar.Top = 70
     $progressBar.Left = 10
-    $progressBar.Width = 560
+    $progressBar.Width = 561
     $progressBar.Height = 20
     $progressBar.Minimum = 0
     $progressBar.Maximum = 9
     $progressBar.Value = 0
+    $progressBar.BackColor = [Drawing.Color]::FromArgb(187, 181, 189) # French gray
+    $progressBar.ForeColor = [Drawing.Color]::FromArgb(249, 248, 248) # Seasalt
+    $progressBar.Style = [Windows.Forms.ProgressBarStyle]::Continuous
+
     $panelStatus.Controls.Add($progressBar)
 
     $buttonLaunch = New-Object -TypeName 'Windows.Forms.Button'
     $buttonLaunch.Location = New-Object -TypeName 'Drawing.Size' -ArgumentList 453, 15
     $buttonLaunch.Size = New-Object -TypeName 'Drawing.Size' -ArgumentList 118, 40
     $buttonLaunch.Text = 'Launch'
-    $buttonLaunch.BackColor = [Drawing.Color]::FromArgb(216, 218, 254)
-    $buttonLaunch.ForeColor = [Drawing.Color]::FromArgb(72, 78, 150)
+    $buttonLaunch.BackColor = [Drawing.Color]::FromArgb(205, 211, 206) # Timberwolf
+    $buttonLaunch.ForeColor = [Drawing.Color]::FromArgb(20, 27, 65) # Space cadet
     $panelStatus.Controls.Add($buttonLaunch)
 
     $buttonLaunch.Add_Click(
