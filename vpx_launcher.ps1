@@ -673,6 +673,23 @@ function Read-HistoryDat {
     }
 }
 
+function Append-Article {
+    param ([Parameter(Mandatory)][string]$String)
+
+    $appended = $false
+
+    'the', 'a', 'an' | ForEach-Object {
+        if ($String -like "$_ *") {
+            '{0}, {1}' -f $String.SubString($_.Length + 1), $String.SubString(0, $_.Length)
+            $appended = $true
+        }
+    }
+
+    if (!$appended) {
+        $String
+    }
+}
+
 #  ___                      ___ _ _
 # | _ \__ _ _ _ ___ ___ ___| __(_) |___ _ _  __ _ _ __  ___ ___
 # |  _/ _` | '_(_-</ -_)___| _|| | / -_) ' \/ _` | '  \/ -_|_-<
@@ -691,9 +708,9 @@ function Parse-Filenames {
         if ($baseName -match '(.+)[ _]?\((.+)(\d{4})\)') {
             [PSCustomObject]@{
                 FileName     = $vpxFile
-                Table        = $matches[1]
-                Manufacturer = $matches[2]
-                Year         = $matches[3]
+                Table        = Append-Article -String $matches[1].Trim()
+                Manufacturer = $matches[2].Trim()
+                Year         = $matches[3].Trim()
             }
         }
         else {
