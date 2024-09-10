@@ -1,7 +1,7 @@
 Param([string]$Path = 'D:\Visual Pinball')
 
 $launcherArgs = @{
-    # Verbose    = $true
+    Verbose    = $true
     # Benchmark  = $true
     PinballExe = Join-Path $Path 'VPinballX64.exe'
     TablePath  = Join-Path $Path 'Tables'

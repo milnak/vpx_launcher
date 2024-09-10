@@ -6,10 +6,10 @@ Param(
     [switch]$Benchmark
 )
 
-$launcherVersion = '1.2'
+$script:launcherVersion = '1.2'
 
-$colorScheme = @{
-    ListView_BackColor     = [Drawing.Color]::FromArgb(56,63,62)
+$script:colorScheme = @{
+    ListView_BackColor     = [Drawing.Color]::FromArgb(56, 63, 62)
     ListView_ForeColor     = [Drawing.Color]::FromArgb(229, 230, 255)
     PanelStatus_BackColor  = [Drawing.Color]::FromArgb(38, 43, 46)
     PanelStatus_ForeColor  = [Drawing.Color]::FromArgb(143, 147, 149)
@@ -18,6 +18,10 @@ $colorScheme = @{
     ButtonLaunch_BackColor = [Drawing.Color]::FromArgb(23, 18, 24)
     ButtonLaunch_ForeColor = [Drawing.Color]::FromArgb(234, 231, 232)
 }
+
+$script:metadataCache = @{}
+$script:launchCount = @{}
+
 
 #######################################################################################################################
 # Adapted from
@@ -417,6 +421,27 @@ function Read-VpxMetadata {
     $fileStream.Dispose()
 }
 
+#  ___                               _       _                      _    ___              _
+# |_ _|_ _  __ _ _ ___ _ __  ___ _ _| |_ ___| |   __ _ _  _ _ _  __| |_ / __|___ _  _ _ _| |_
+#  | || ' \/ _| '_/ -_) '  \/ -_) ' \  _|___| |__/ _` | || | ' \/ _| ' \ (__/ _ \ || | ' \  _|
+# |___|_||_\__|_| \___|_|_|_\___|_||_\__|   |____\__,_|\_,_|_||_\__|_||_\___\___/\_,_|_||_\__|
+#
+
+function Increment-LaunchCount {
+    param ([Parameter(Mandatory)][string]$FileName)
+
+    $count = 1
+
+    if ($script:launchCount.Contains($FileName)) {
+        $count = $script:launchCount[$FileName] += 1
+    }
+    else {
+        $script:launchCount.Add($FileName, 1)
+    }
+
+    $count
+}
+
 #######################################################################################################################
 
 #  ___             _            ___
@@ -452,9 +477,15 @@ function Invoke-Game {
 
     $buttonLaunch.Enabled = $true
     $buttonLaunch.Text = $prevText
-}
 
-$metadataCache = @{}
+    $filename = (Split-Path -Path $TablePath -Leaf).ToLower()
+    $count = Increment-LaunchCount -FileName $filename
+
+    # Update listview play count
+    $listView.SelectedItems[0].SubItems[3].Text = $count
+
+    Write-Verbose ('VPX (filename: {0}) exited' -f $filename)
+}
 
 #  ___             _           ___  _      _
 # |_ _|_ ___ _____| |_____ ___|   \(_)__ _| |___  __ _
@@ -488,13 +519,14 @@ function Invoke-Dialog {
     $listView.MultiSelect = $false
     $listView.View = [Windows.Forms.View]::Details
     $listView.Font = New-Object  System.Drawing.Font('Consolas', 11, [Drawing.FontStyle]::Regular)
-    $listView.BackColor = $colorScheme.ListView_BackColor
-    $listView.ForeColor = $colorScheme.ListView_ForeColor
+    $listView.BackColor = $script:colorScheme.ListView_BackColor
+    $listView.ForeColor = $script:colorScheme.ListView_ForeColor
 
 
-    $listView.Columns.Add('Table', 380) | Out-Null
+    $listView.Columns.Add('Table', 330) | Out-Null
     $listView.Columns.Add('Manufact.', 130) | Out-Null
     $listView.Columns.Add('Year', 53) | Out-Null
+    $listView.Columns.Add('Play', 50) | Out-Null
 
     $panelListView.Controls.Add($listView)
 
@@ -504,18 +536,24 @@ function Invoke-Dialog {
         $listItem.Tag = $item.FileName
         $listItem.SubItems.Add($item.Manufacturer) | Out-Null
         $listItem.SubItems.Add($item.Year) | Out-Null
+        $launchCount = $script:launchCount[$listItem.Tag]
+        if (!$launchCount) { $launchCount = '0' }
+        $listItem.SubItems.Add($launchCount) | Out-Null
+
         $listView.Items.Add($listItem) | Out-Null
     }
 
     $listView.Items[0].Selected = $true
 
     $listView.add_SelectedIndexChanged({
-            if ($listView.SelectedItems.Count -gt 0) {
+            if ($listView.SelectedItems.Count -eq 1) {
                 $filename = $listView.SelectedItems.Tag
-                $meta = $metadataCache[$filename]
+
+                # Update metadata
+                $meta = $script:metadataCache[$filename]
                 if (!$meta) {
                     $meta = Read-VpxMetadata -Path (Join-Path -Path $TablePath -ChildPath $filename)
-                    $metadataCache[$filename] = $meta
+                    $script:metadataCache[$filename] = $meta
                 }
 
                 $label1.Text = $meta.TableName
@@ -568,8 +606,8 @@ function Invoke-Dialog {
     $panelStatus = New-Object -TypeName 'Windows.Forms.Panel'
     $panelStatus.Dock = [Windows.Forms.DockStyle]::Bottom
     $panelStatus.Height = 111
-    $panelStatus.BackColor = $colorScheme.PanelStatus_BackColor
-    $panelStatus.ForeColor = $colorScheme.PanelStatus_ForeColor
+    $panelStatus.BackColor = $script:colorScheme.PanelStatus_BackColor
+    $panelStatus.ForeColor = $script:colorScheme.PanelStatus_ForeColor
 
     $label1 = New-Object -TypeName 'Windows.Forms.Label'
     $label1.Text = ''
@@ -600,8 +638,8 @@ function Invoke-Dialog {
     $progressBar.Minimum = 0
     $progressBar.Maximum = 9
     $progressBar.Value = 0
-    $progressBar.BackColor = $colorScheme.ProgressBar_BackColor
-    $progressBar.ForeColor = $colorScheme.ProgressBar_ForeColor
+    $progressBar.BackColor = $script:colorScheme.ProgressBar_BackColor
+    $progressBar.ForeColor = $script:colorScheme.ProgressBar_ForeColor
     $progressBar.Style = [Windows.Forms.ProgressBarStyle]::Continuous
 
     $panelStatus.Controls.Add($progressBar)
@@ -611,8 +649,8 @@ function Invoke-Dialog {
     $buttonLaunch.Size = New-Object -TypeName 'Drawing.Size' -ArgumentList 118, 40
     $buttonLaunch.Text = 'Launch'
 
-    $buttonLaunch.BackColor = $colorScheme.ButtonLaunch_BackColor
-    $buttonLaunch.ForeColor = $colorScheme.ButtonLaunch_ForeColor
+    $buttonLaunch.BackColor = $script:colorScheme.ButtonLaunch_BackColor
+    $buttonLaunch.ForeColor = $script:colorScheme.ButtonLaunch_ForeColor
     $buttonLaunch.FlatStyle = [Windows.Forms.FlatStyle]::Flat
     $buttonLaunch.FlatAppearance.BorderColor = [Drawing.Color]::FromArgb(61, 142, 167)
     $buttonLaunch.FlatAppearance.BorderSize = 1;
@@ -637,7 +675,7 @@ function Invoke-Dialog {
 
     $form.Add_Activated({ $listView.Select() })
 
-    $form.Text = ('VPX Launcher v{0} - {1} machines' -f $launcherVersion, $listView.Items.Count)
+    $form.Text = ('VPX Launcher v{0} - {1} machines' -f $script:launcherVersion, $listView.Items.Count)
     $form.Width = 600
     $form.Height = 600
     $form.FormBorderStyle = [Windows.Forms.FormBorderStyle]::FixedSingle
@@ -771,6 +809,16 @@ if ($Benchmark) {
     return
 }
 
+$cfgPath = Join-Path -Path $env:LocalAppData -ChildPath 'vpx_launcher.json'
+
+# Read in configuration
+Write-Verbose "Reading config from $cfgPath"
+if (Test-Path -LiteralPath $cfgPath -PathType Leaf) {
+    $cfg = Get-Content $cfgPath | ConvertFrom-Json
+    # Convert JSON to hash
+    foreach ($p in $cfg.LaunchCount.PSObject.Properties) { $script:launchCount[$p.Name] = $p.Value }
+}
+
 # TODO: Display VPinMAME ROM history in a text window.
 # $vpmRegistry = Get-ItemProperty -ErrorAction SilentlyContinue -LiteralPath 'HKCU:\Software\Freeware\Visual PinMame\globals'
 # $historyDat = $vpmRegistry.history_file
@@ -778,5 +826,10 @@ if ($Benchmark) {
 # Write-Host -ForegroundColor Red "'$($found.Table)' Bio:"
 # ($history | Where-Object ROM -eq $found.ROM).Bio | ForEach-Object { Write-Host -ForegroundColor DarkCyan $_ }
 
-if ((Invoke-Dialog -Data $tables) -eq [Windows.Forms.DialogResult]::OK) {
-}
+Invoke-Dialog -Data $tables | Out-Null
+
+# Write out configuration
+Write-Verbose "Writing config to $cfgPath"
+@{
+    LaunchCount = $script:launchCount
+} | ConvertTo-Json | Out-File $cfgPath
