@@ -6,7 +6,7 @@ function Check-GithubUpdate {
         [Parameter(Mandatory)][string]$Repo
     )
 
-    $vpxItem = Get-Item -LiteralPath $Path
+    $vpxItem = Get-Item -LiteralPath $Path -ErrorAction Stop
 
     $vpxVer = 'v{0}' -f $vpxItem.VersionInfo.ProductVersion
 
