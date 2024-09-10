@@ -6,7 +6,18 @@ Param(
     [switch]$Benchmark
 )
 
-$launcherVersion = '1.1'
+$launcherVersion = '1.2'
+
+$colorScheme = @{
+    ListView_BackColor     = [Drawing.Color]::FromArgb(56,63,62)
+    ListView_ForeColor     = [Drawing.Color]::FromArgb(229, 230, 255)
+    PanelStatus_BackColor  = [Drawing.Color]::FromArgb(38, 43, 46)
+    PanelStatus_ForeColor  = [Drawing.Color]::FromArgb(143, 147, 149)
+    ProgressBar_BackColor  = [Drawing.Color]::FromArgb(134, 134, 134)
+    ProgressBar_ForeColor  = [Drawing.Color]::FromArgb(249, 248, 248)
+    ButtonLaunch_BackColor = [Drawing.Color]::FromArgb(23, 18, 24)
+    ButtonLaunch_ForeColor = [Drawing.Color]::FromArgb(234, 231, 232)
+}
 
 #######################################################################################################################
 # Adapted from
@@ -454,8 +465,6 @@ $metadataCache = @{}
 function Invoke-Dialog {
     Param($Data)
 
-    # Color palette suggested by https://coolors.co/7376ff-f9f8f8-cdd3ce-bbb5bd-141b41
-
     $script:listViewSort = @{
         Column     = 0
         Descending = $false
@@ -470,20 +479,22 @@ function Invoke-Dialog {
     $panelListView = New-Object -TypeName 'Windows.Forms.Panel'
     $panelListView.Dock = [Windows.Forms.DockStyle]::Top
     $panelListView.Height = 450
-    $panelListView.Width = 300
+    # $panelListView.Width = 500
+
     $listView = New-Object -TypeName 'Windows.Forms.ListView'
     $listView.Dock = [Windows.Forms.DockStyle]::Fill
+    $listView.BorderStyle = [Windows.Forms.BorderStyle]::FixedSingle
     $listView.FullRowSelect = $true
     $listView.MultiSelect = $false
     $listView.View = [Windows.Forms.View]::Details
     $listView.Font = New-Object  System.Drawing.Font('Consolas', 11, [Drawing.FontStyle]::Regular)
-    $listView.BackColor = [Drawing.Color]::FromArgb(115, 118, 255) # Medium slate blue
-    $listView.ForeColor = [Drawing.Color]::FromArgb(249, 248, 248) # Seasalt
+    $listView.BackColor = $colorScheme.ListView_BackColor
+    $listView.ForeColor = $colorScheme.ListView_ForeColor
 
 
-    $listView.Columns.Add('Table', 375) | Out-Null
-    $listView.Columns.Add('Manufact.', 125) | Out-Null
-    $listView.Columns.Add('Year', 50) | Out-Null
+    $listView.Columns.Add('Table', 380) | Out-Null
+    $listView.Columns.Add('Manufact.', 130) | Out-Null
+    $listView.Columns.Add('Year', 53) | Out-Null
 
     $panelListView.Controls.Add($listView)
 
@@ -557,8 +568,8 @@ function Invoke-Dialog {
     $panelStatus = New-Object -TypeName 'Windows.Forms.Panel'
     $panelStatus.Dock = [Windows.Forms.DockStyle]::Bottom
     $panelStatus.Height = 111
-    $panelStatus.BackColor = [Drawing.Color]::FromArgb(20, 27, 65) # Space cadet
-    $panelStatus.ForeColor = [Drawing.Color]::FromArgb(187, 181, 189) # French gray
+    $panelStatus.BackColor = $colorScheme.PanelStatus_BackColor
+    $panelStatus.ForeColor = $colorScheme.PanelStatus_ForeColor
 
     $label1 = New-Object -TypeName 'Windows.Forms.Label'
     $label1.Text = ''
@@ -589,8 +600,8 @@ function Invoke-Dialog {
     $progressBar.Minimum = 0
     $progressBar.Maximum = 9
     $progressBar.Value = 0
-    $progressBar.BackColor = [Drawing.Color]::FromArgb(187, 181, 189) # French gray
-    $progressBar.ForeColor = [Drawing.Color]::FromArgb(249, 248, 248) # Seasalt
+    $progressBar.BackColor = $colorScheme.ProgressBar_BackColor
+    $progressBar.ForeColor = $colorScheme.ProgressBar_ForeColor
     $progressBar.Style = [Windows.Forms.ProgressBarStyle]::Continuous
 
     $panelStatus.Controls.Add($progressBar)
@@ -599,8 +610,12 @@ function Invoke-Dialog {
     $buttonLaunch.Location = New-Object -TypeName 'Drawing.Size' -ArgumentList 453, 15
     $buttonLaunch.Size = New-Object -TypeName 'Drawing.Size' -ArgumentList 118, 40
     $buttonLaunch.Text = 'Launch'
-    $buttonLaunch.BackColor = [Drawing.Color]::FromArgb(205, 211, 206) # Timberwolf
-    $buttonLaunch.ForeColor = [Drawing.Color]::FromArgb(20, 27, 65) # Space cadet
+
+    $buttonLaunch.BackColor = $colorScheme.ButtonLaunch_BackColor
+    $buttonLaunch.ForeColor = $colorScheme.ButtonLaunch_ForeColor
+    $buttonLaunch.FlatStyle = [Windows.Forms.FlatStyle]::Flat
+    $buttonLaunch.FlatAppearance.BorderColor = [Drawing.Color]::FromArgb(61, 142, 167)
+    $buttonLaunch.FlatAppearance.BorderSize = 1;
     $panelStatus.Controls.Add($buttonLaunch)
 
     $buttonLaunch.Add_Click(
