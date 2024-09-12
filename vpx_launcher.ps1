@@ -289,7 +289,7 @@ function Read-VpxMetadata {
         }
     }
     if ($Benchmark) {
-        Write-Host ('{0} dirtree {1:n0}ms' -f $Path, ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
+        Write-Host ('"{0}","dirtree", {1:n0}' -f (Split-Path $Path -Leaf), ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
     }
 
     if ($VerbosePreference -eq 'Continue') {
@@ -321,7 +321,7 @@ function Read-VpxMetadata {
     $sb_blocks = SS-Follow -Buffer $bbat.data -Count $bbat.count -P $sb_start
 
     if ($Benchmark) {
-        Write-Host ('{0} Block chain {1:n0}ms' -f $Path, ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
+        Write-Host ('"{0}","Block chain",{1:n0}' -f (Split-Path $Path -Leaf), ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
     }
 
     #  __  __     _           _      _
@@ -415,7 +415,7 @@ function Read-VpxMetadata {
     }
 
     if ($Benchmark) {
-        Write-Host ('{0} Metadata {1:n0}ms' -f $Path, ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
+        Write-Host ('"{0}","Metadata",{1:n0}' -f (Split-Path $Path -Leaf), ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
     }
 
     $fileStream.Dispose()
