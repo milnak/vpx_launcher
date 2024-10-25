@@ -1,8 +1,12 @@
 [CmdletBinding()]
 Param(
+    # Location to the VPinball EXE
     [string]$PinballExe = 'VPinballX64.exe',
+    # Folder containing VPX tables
     [string]$TablePath = 'Tables',
-    [string]$Database = 'vpx_launcher.csv',
+    # Zero-based display number to use. Find numbers in Settings > System > Display
+    [int]$Display = -1,
+    # For launcher development testing
     [switch]$Benchmark
 )
 
@@ -786,14 +790,37 @@ function Parse-Filenames {
 # |_|  |_\__,_|_|_||_|
 #
 
+$win32 = Add-Type -Namespace Win32  -MemberDefinition @'
+    [DllImport("user32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+    public static extern IntPtr FindWindow(string className, string windowName);
+
+    [DllImport("kernel32.dll")]
+    public static extern uint GetLastError();
+'@ -Name 'Funcs' -PassThru
+
+
+# Note: can't just search for class name. Window title must be specified.
+if ($win32::FindWindow('VPinball', 'Visual Pinball') -ne 0) {
+    Write-Warning 'Visual Pinball should be closed before running this launcher.'
+    return
+}
+
+
 # Verify paths.
 Get-Item -ErrorAction Stop -LiteralPath $PinballExe | Out-Null
 Get-Item -ErrorAction Stop -LiteralPath $TablePath | Out-Null
 
+if ($Display -ne -1) {
+    # Change display in INI file.
+    $vpxIni = Resolve-Path -LiteralPath "$env:AppData\vpinballx\VPinballX.ini"
+    $iniData = Get-Content -LiteralPath $vpxIni -ErrorAction Stop
+    $iniData -replace 'Display = \d+', ('Display = {0}' -f $Display) | Out-File -LiteralPath $vpxIni -Encoding ascii
+}
+
+
 $vpxFiles = (Get-ChildItem -File -LiteralPath $TablePath -Include '*.vpx').Name
 
 # Read in database
-
 $tables = Parse-Filenames -VpxFiles $vpxFiles
 if ($tables.Count -eq 0) {
     Write-Warning "No tables found in $TablePath"
