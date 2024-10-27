@@ -31,7 +31,8 @@ $result = Check-GithubUpdate -Path (Join-Path -Path $Path -ChildPath 'VPinballX6
 
 if ($result.LocalVersion -ne $result.OnlineVersion) {
     Write-Host -ForegroundColor Yellow 'VPX Update available from https://github.com/vpinball/vpinball/releases :'
-    $result.Assets
+    $result.Assets | Where-Object { $_ -like '*/VPinballX-*-Release-win-x64.*' }
+    '(Extract to "Visual Pinball" root directory)'
 }
 else {
     Write-Host -ForegroundColor Green 'Latest version installed.'
@@ -48,7 +49,8 @@ $result = Check-GithubUpdate -Path (Join-Path -Path $Path -ChildPath 'VPinMAME\V
 
 if ($result.LocalVersion -ne $result.OnlineVersion) {
     Write-Host -ForegroundColor Yellow 'VPM Update available from https://github.com/vpinball/pinmame/releases :'
-    $result.Assets
+    $result.Assets | Where-Object { $_ -like '*/VPinMAME-sc-*-win-x64.*' }
+    '(Extract to "VPinMAME" subdirectory)'
 }
 else {
     Write-Host -ForegroundColor Green 'Latest version installed.'
