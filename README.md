@@ -12,6 +12,27 @@
 
 Download and copy `vpx_launcher.ps1` to your "Visual Pinball" root folder and run it.  That's about it!
 
+## Update Checker
+
+I've also created an update checker for Visual Pinball X and VPinMame. Just run "UpdateCheck.ps1" and provide it the path to your binaries. If a newer version is available,
+the location to download it from will be shown.
+
+```PowerShell
+> .\UpdateCheck.ps1 -Path 'D:\Visual Pinball\'
+```
+
+```text
+Visual Pinball X:
+Local version:  v10.8.0.2015.6f63503 (D:\Visual Pinball\VPinballX64.exe)
+Online version: v10.8.0.2015.6f63503
+Latest version installed.
+
+Visual PinMAME:
+Local version:  v3.6.0.1122.79a301d (D:\Visual Pinball\VPinMAME\VPinMAME64.dll)
+Online version: v3.6.0.1122.79a301d
+Latest version installed.
+```
+
 ## Notes
 
 * Click on headers to sort by that column.
