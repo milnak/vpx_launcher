@@ -1,9 +1,9 @@
 [CmdletBinding()]
 Param(
     # Location to the VPinball EXE
-    [string]$PinballExe = 'VPinballX64.exe',
+    [string]$PinballExe = (Resolve-Path 'VPinballX64.exe'),
     # Folder containing VPX tables
-    [string]$TablePath = 'Tables',
+    [string]$TablePath = (Resolve-Path 'Tables'),
     # Zero-based display number to use. Find numbers in Settings > System > Display
     [int]$Display = -1,
     # For launcher development testing
