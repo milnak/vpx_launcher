@@ -37,3 +37,4 @@ Latest version installed.
 
 * Click on headers to sort by that column.
 * Type to search for a specific table.
+* If you get a "running scripts is disabled on this system" error when launching, use the command `Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser -Force`.
