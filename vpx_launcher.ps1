@@ -818,7 +818,7 @@ if ($Display -ne -1) {
 }
 
 
-$vpxFiles = (Get-ChildItem -File -LiteralPath $TablePath -Include '*.vpx').Name
+$vpxFiles = (Get-ChildItem -File -LiteralPath $TablePath -Filter '*.vpx').Name
 
 # Read in database
 $tables = Parse-Filenames -VpxFiles $vpxFiles
