@@ -1,4 +1,4 @@
-﻿Param([string]$Path = '.')
+Param([string]$Path = '.')
 
 function Check-GithubUpdate {
     param (
@@ -31,7 +31,7 @@ $result = Check-GithubUpdate -Path (Join-Path -Path $Path -ChildPath 'VPinballX6
 
 if ($result.LocalVersion -ne $result.OnlineVersion) {
     Write-Host -ForegroundColor Yellow 'VPX Update available from https://github.com/vpinball/vpinball/releases :'
-    $result.Assets | Where-Object { $_ -like '*/VPinballX-*-Release-win-x64.*' }
+    $result.Assets | Where-Object { $_ -like '*/VPinballX-*-windows-x64-Release.zip' }
     '(Extract to "Visual Pinball" root directory)'
 }
 else {
