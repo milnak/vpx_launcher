@@ -12,7 +12,7 @@ function Check-GithubUpdate {
 
     $json = (Invoke-WebRequest -Uri ('https://api.github.com/repos/{0}/releases' -f $Repo)).Content | ConvertFrom-Json
 
-    $onlineVersion = @($json.onlineVersion)[0] -replace '-', '.'
+    $onlineVersion = @($json.tag_name)[0] -replace '-', '.'
 
     @{
         OnlineVersion = $onlineVersion
@@ -25,12 +25,13 @@ function Check-GithubUpdate {
 ### Visual Pinball X
 
 Write-Host -ForegroundColor Cyan 'Visual Pinball X:'
-$result = Check-GithubUpdate -Path (Join-Path -Path $Path -ChildPath 'VPinballX64.exe') -Repo 'vpinball/vpinball'
+$destination = Resolve-Path -LiteralPath $Path
+$result = Check-GithubUpdate -Path (Join-Path -Path $destination -ChildPath 'VPinballX64.exe') -Repo 'vpinball/vpinball'
 'Local version:  {0} ({1})' -f $result.LocalVersion, $result.Path
 'Online version: {0}' -f $result.OnlineVersion
 
 if ($result.LocalVersion -ne $result.OnlineVersion) {
-    Write-Host -ForegroundColor Yellow 'VPX Update available (Extract to "Visual Pinball" root directory)!'
+    Write-Host -ForegroundColor Yellow "VPX Update available (Extract to '$destination'):"
     $result.Assets | Where-Object { $_ -like '*/VPinballX-*-windows-x64-Release.zip' -and $_ -notlike '*-dev-third-party-*' }
 }
 else {
@@ -42,12 +43,13 @@ else {
 ### Visual PinMAME
 
 Write-Host -ForegroundColor Cyan 'Visual PinMAME:'
-$result = Check-GithubUpdate -Path (Join-Path -Path $Path -ChildPath 'VPinMAME\VPinMAME64.dll') -Repo 'vpinball/pinmame'
+$destination = Resolve-Path -LiteralPath (Join-Path -Path $Path -ChildPath 'VPinMAME')
+$result = Check-GithubUpdate -Path (Join-Path -Path $destination -ChildPath 'VPinMAME64.dll') -Repo 'vpinball/pinmame'
 'Local version:  {0} ({1})' -f $result.LocalVersion, $result.Path
 'Online version: {0}' -f $result.OnlineVersion
 
 if ($result.LocalVersion -ne $result.OnlineVersion) {
-    Write-Host -ForegroundColor Yellow 'VPM Update available (Extract to "VPinMAME" subdirectory)!'
+    Write-Host -ForegroundColor Yellow "VPM Update available (Extract to '$destination'):"
     $result.Assets | Where-Object { $_ -like '*/VPinMAME-sc-*-win-x64.*' }
 }
 else {
