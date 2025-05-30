@@ -10,7 +10,7 @@ Param(
     [switch]$Benchmark
 )
 
-$script:launcherVersion = '1.3'
+$script:launcherVersion = '1.4'
 
 $script:colorScheme = @{
     ListView_BackColor     = [Drawing.Color]::FromArgb(56, 63, 62)
@@ -244,10 +244,11 @@ function Read-VpxMetadata {
     $dirtree_blocks = SS-LoadBigBlocks -Blocks $tree_blocks
     $buflen = $tree_blocks.Length * $bbat.blockSize
 
-    $dirtree = @()
+    # Array +=  recreates the entire array on each add, so use ArrayList with .Add() to optimize.
+    $dirtree = [Collections.ArrayList]@() # $dirtree = @()
     for ($i = 0; $i -lt $buflen / 128; $i++) {
         # NOTE: dirtree can be large (e.g. Machine Bride of Pinbot). We're just interested in first few entries, so drop out after a few
-        # for performance.
+        # for performance. However, for general use (outside of VPX), this should read the entire dirtree.
         if ($i -ge 16 ) { break }
 
         $p = $i * 128
@@ -282,7 +283,8 @@ function Read-VpxMetadata {
             + (([uint32]$Buffer[$Offset + 2]) -shl 16) `
             + (([uint32]$Buffer[$Offset + 3]) -shl 24)
 
-        $dirtree += @{
+        # $dirtree += @{
+        $dirtree.Add(@{
             Name  = $name
             Type  = $type
             Size  = $size
@@ -290,7 +292,7 @@ function Read-VpxMetadata {
             # Next  = Read-U32 -Buffer $dirtree_blocks -Offset ($p + 0x40 + 0x08)
             # Prev  = Read-U32 -Buffer $dirtree_blocks -Offset ($p + 0x40 + 0x04)
             # Child = Read-U32 -Buffer $dirtree_blocks -Offset ($p + 0x40 + 0x0c)
-        }
+        }) | Out-Null
     }
     if ($Benchmark) {
         Write-Host ('"{0}","dirtree", {1:n0}' -f (Split-Path $Path -Leaf), ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
