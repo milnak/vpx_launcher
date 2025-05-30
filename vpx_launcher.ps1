@@ -10,7 +10,7 @@ Param(
     [switch]$Benchmark
 )
 
-$script:launcherVersion = '1.2'
+$script:launcherVersion = '1.3'
 
 $script:colorScheme = @{
     ListView_BackColor     = [Drawing.Color]::FromArgb(56, 63, 62)
