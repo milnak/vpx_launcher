@@ -577,7 +577,6 @@ function Invoke-Dialog {
 
     $listView.add_ColumnClick({
             $column = $_.Column
-            $items = $this.Items | ForEach-Object { $_ }
             if ($column -ne $script:listViewSort.Column) {
                 # Column change, always start with ascending sort
                 $script:listViewSort.Column = $column
@@ -586,14 +585,18 @@ function Invoke-Dialog {
             else {
                 $script:listViewSort.Descending = !$script:listViewSort.Descending
             }
+
+            # https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.listviewitem?view=windowsdesktop-9.0
+            # Make deep copy of Items and sort
+            $items = $this.Items `
+            | ForEach-Object { $_ } `
+            | Sort-Object -Descending:$script:listViewSort.Descending -Property @{ Expression = { $_.SubItems[$script:listViewSort.Column].Text } }
+
             $this.Items.Clear()
             $this.ShowGroups = $false
             $this.Sorting = 'none'
 
-            $this.Items.AddRange(
-                ($items | Sort-Object -Descending:$script:listViewSort.Descending -Property @{ Expression = { $_.SubItems[$script:listViewSort.Column].Text } } )
-            )
-
+            $items | ForEach-Object { $this.Items.Add($_) }
         })
 
     $listView.add_MouseDoubleClick(
@@ -818,7 +821,7 @@ if ($Display -ne -1) {
 }
 
 
-$vpxFiles = (Get-ChildItem -File -LiteralPath $TablePath -Filter '*.vpx').Name
+$vpxFiles = (Get-ChildItem -File -LiteralPath $TablePath -Include '*.vpx').Name
 
 # Read in database
 $tables = Parse-Filenames -VpxFiles $vpxFiles
