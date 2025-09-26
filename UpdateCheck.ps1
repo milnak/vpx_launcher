@@ -64,6 +64,8 @@ else {
     Write-Host -ForegroundColor Green 'Latest version installed.'
 }
 
+''
+
 ### dmd-extensions
 
 Write-Host -ForegroundColor Cyan 'dmd-extensions:'
