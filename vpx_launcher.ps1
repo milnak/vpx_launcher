@@ -7,7 +7,9 @@ Param(
     # Zero-based display number to use. Find numbers in Settings > System > Display
     [int]$Display = -1,
     # For launcher development testing
-    [switch]$Benchmark
+    [switch]$Benchmark,
+    # Display additional metadata (slower)
+    [switch]$ShowRichMetadata
 )
 
 $script:launcherVersion = '1.4'
@@ -285,14 +287,14 @@ function Read-VpxMetadata {
 
         # $dirtree += @{
         $dirtree.Add(@{
-            Name  = $name
-            Type  = $type
-            Size  = $size
-            Start = $start
-            # Next  = Read-U32 -Buffer $dirtree_blocks -Offset ($p + 0x40 + 0x08)
-            # Prev  = Read-U32 -Buffer $dirtree_blocks -Offset ($p + 0x40 + 0x04)
-            # Child = Read-U32 -Buffer $dirtree_blocks -Offset ($p + 0x40 + 0x0c)
-        }) | Out-Null
+                Name  = $name
+                Type  = $type
+                Size  = $size
+                Start = $start
+                # Next  = Read-U32 -Buffer $dirtree_blocks -Offset ($p + 0x40 + 0x08)
+                # Prev  = Read-U32 -Buffer $dirtree_blocks -Offset ($p + 0x40 + 0x04)
+                # Child = Read-U32 -Buffer $dirtree_blocks -Offset ($p + 0x40 + 0x0c)
+            }) | Out-Null
     }
     if ($Benchmark) {
         Write-Host ('"{0}","dirtree", {1:n0}' -f (Split-Path $Path -Leaf), ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
@@ -557,15 +559,27 @@ function Invoke-Dialog {
 
                 # Update metadata
                 $meta = $script:metadataCache[$filename]
-                if (!$meta) {
-                    $meta = Read-VpxMetadata -Path (Join-Path -Path $TablePath -ChildPath $filename)
-                    $script:metadataCache[$filename] = $meta
+
+                if (-not $meta) {
+                    if ($ShowRichMetadata) {
+                        $meta = Read-VpxMetadata -Path (Join-Path -Path $TablePath -ChildPath $filename)
+                        $script:metadataCache[$filename] = $meta
+                    }
+                    else {
+                        $meta = @{
+                            TableName     = $listView.SelectedItems.Text
+                            TableVersion  = $listView.SelectedItems.SubItems[2].Text
+                            TableSaveDate = $null
+                            AuthorName    = $listView.SelectedItems.SubItems[1].Text
+                        }
+                        $script:metadataCache[$filename] = $meta
+                    }
                 }
 
                 $label1.Text = $meta.TableName
                 $text = $null
                 if ($meta.TableVersion) {
-                    $text += "v$($meta.TableVersion) "
+                    $text += "$($meta.TableVersion) "
                 }
                 if ($meta.TableSaveDate) {
                     $text += "($($meta.TableSaveDate)) "
