@@ -1,15 +1,11 @@
-[CmdletBinding()]
+[CmdletBinding(DefaultParameterSetName = 'Run')]
 Param(
     # Location to the VPinball EXE
     [string]$PinballExe = (Resolve-Path 'VPinballX64.exe'),
     # Folder containing VPX tables
     [string]$TablePath = (Resolve-Path 'Tables'),
     # Zero-based display number to use. Find numbers in Settings > System > Display
-    [int]$Display = -1,
-    # For launcher development testing
-    [switch]$Benchmark,
-    # Display additional metadata (slower)
-    [switch]$ShowRichMetadata
+    [int]$Display = -1
 )
 
 $script:launcherVersion = '1.4'
@@ -296,9 +292,8 @@ function Read-VpxMetadata {
                 # Child = Read-U32 -Buffer $dirtree_blocks -Offset ($p + 0x40 + 0x0c)
             }) | Out-Null
     }
-    if ($Benchmark) {
-        Write-Host ('"{0}","dirtree", {1:n0}' -f (Split-Path $Path -Leaf), ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
-    }
+
+    Write-Verbose ('"{0}","dirtree", {1:n0}' -f (Split-Path $Path -Leaf), ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
 
     if ($VerbosePreference -eq 'Continue') {
         # DirTree identifiers
@@ -328,9 +323,8 @@ function Read-VpxMetadata {
     # bbat->SS-follow( sb_start );
     $sb_blocks = SS-Follow -Buffer $bbat.data -Count $bbat.count -P $sb_start
 
-    if ($Benchmark) {
-        Write-Host ('"{0}","Block chain",{1:n0}' -f (Split-Path $Path -Leaf), ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
-    }
+
+    Write-Verbose ('"{0}","Block chain",{1:n0}' -f (Split-Path $Path -Leaf), ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
 
     #  __  __     _           _      _
     # |  \/  |___| |_ __ _ __| |__ _| |_ __ _
@@ -422,9 +416,7 @@ function Read-VpxMetadata {
         }
     }
 
-    if ($Benchmark) {
-        Write-Host ('"{0}","Metadata",{1:n0}' -f (Split-Path $Path -Leaf), ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
-    }
+    Write-Verbose ('"{0}","Metadata",{1:n0}' -f (Split-Path $Path -Leaf), ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
 
     $fileStream.Dispose()
 }
@@ -561,6 +553,8 @@ function Invoke-Dialog {
                 $meta = $script:metadataCache[$filename]
 
                 if (-not $meta) {
+                    $ShowRichMetadata = $false
+
                     if ($ShowRichMetadata) {
                         $meta = Read-VpxMetadata -Path (Join-Path -Path $TablePath -ChildPath $filename)
                         $script:metadataCache[$filename] = $meta
@@ -843,15 +837,6 @@ $vpxFiles = (Get-ChildItem -File -LiteralPath $TablePath -Include '*.vpx').Name
 $tables = Parse-Filenames -VpxFiles $vpxFiles
 if ($tables.Count -eq 0) {
     Write-Warning "No tables found in $TablePath"
-    return
-}
-
-if ($Benchmark) {
-    'Duration: {0:n0}ms' -f ((Measure-Command -Expression {
-                foreach ($table in $tables) {
-                    Read-VpxMetadata -Path (Join-Path -Path $TablePath -ChildPath $table.FileName) | Out-Null
-                }
-            }).TotalMilliseconds)
     return
 }
 
