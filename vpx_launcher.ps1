@@ -8,18 +8,22 @@ Param(
     [int]$Display = -1
 )
 
-$script:launcherVersion = '1.4'
+$script:launcherVersion = '1.4.1'
 
 $script:colorScheme = @{
-    ListView_BackColor     = [Drawing.Color]::FromArgb(56, 63, 62)
-    ListView_ForeColor     = [Drawing.Color]::FromArgb(229, 230, 255)
-    PanelStatus_BackColor  = [Drawing.Color]::FromArgb(38, 43, 46)
-    PanelStatus_ForeColor  = [Drawing.Color]::FromArgb(143, 147, 149)
-    ProgressBar_BackColor  = [Drawing.Color]::FromArgb(134, 134, 134)
-    ProgressBar_ForeColor  = [Drawing.Color]::FromArgb(249, 248, 248)
-    ButtonLaunch_BackColor = [Drawing.Color]::FromArgb(23, 18, 24)
-    ButtonLaunch_ForeColor = [Drawing.Color]::FromArgb(234, 231, 232)
+    # "Ubuntu Custom"
+    ListView_BackColor     = [Drawing.Color]::FromArgb(94, 92, 100) # Dark Gray
+    ListView_ForeColor     = [Drawing.Color]::FromArgb(255, 255, 255) # White
+    PanelStatus_BackColor  = [Drawing.Color]::FromArgb(23, 20, 33) # Very Dark Purple
+    PanelStatus_ForeColor  = [Drawing.Color]::FromArgb(162, 115, 76) # Light Brown
+    ProgressBar_BackColor  = [Drawing.Color]::FromArgb(23, 20, 33) # Very Dark Purple
+    ProgressBar_ForeColor  = [Drawing.Color]::FromArgb(51, 218, 122) # Light Green
+    ButtonLaunch_BackColor = [Drawing.Color]::FromArgb(18, 72, 139) # Dark Blue
+    ButtonLaunch_ForeColor = [Drawing.Color]::FromArgb(208, 207, 204) # Light Gray
 }
+
+# Set this true to read rich metadata from VPX files. This is slower, but provides more accurate information.
+$script:ShowRichMetadata = $false
 
 $script:metadataCache = @{}
 $script:launchCount = @{}
@@ -553,9 +557,7 @@ function Invoke-Dialog {
                 $meta = $script:metadataCache[$filename]
 
                 if (-not $meta) {
-                    $ShowRichMetadata = $false
-
-                    if ($ShowRichMetadata) {
+                    if ($script:ShowRichMetadata) {
                         $meta = Read-VpxMetadata -Path (Join-Path -Path $TablePath -ChildPath $filename)
                         $script:metadataCache[$filename] = $meta
                     }
@@ -787,8 +789,8 @@ function Parse-Filenames {
             [PSCustomObject]@{
                 FileName     = $vpxFile
                 Table        = $baseName
-                Manufacturer = '?'
-                Year         = '?'
+                Manufacturer = ''
+                Year         = ''
             }
             Write-Warning ('Unable to parse filename "{0}"' -f $baseName)
         }
