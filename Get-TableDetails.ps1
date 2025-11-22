@@ -1,5 +1,6 @@
-# TODO: Have Read-VpxMetadata return a PSCustomObject with all metadata fields
 # TODO: Support pipeline (begin, process, end)
+
+# .\Get-TableDetails.ps1 | Select-Object FileName, TableName, TableVersion, ReleaseDate
 
 [CmdletBinding()]
 Param(
@@ -314,6 +315,10 @@ function Read-VpxMetadata {
     # |_|  |_\___|\__\__,_\__,_\__,_|\__\__,_|
     #
 
+    $metadata = [PSCustomObject]@{
+        'FileName' = (Split-Path -Leaf $Path)
+    }
+
     $StartTime = Get-Date
 
     'AuthorEmail',
@@ -347,9 +352,8 @@ function Read-VpxMetadata {
                 $blocks = Get-Follow -Buffer $sbat.data -Count $sbat.count -P $entry.Start
 
                 # TODO: implement multiple block reading
-                @{
-                    $key = 'BBAT'
-                }
+                Write-Verbose "Detected BBAT block (NYI) in $Path"
+                # $metadata | Add-Member -MemberType NoteProperty -Name 'BBAT' -Value ''
             }
             else {
                 # Read from "mini" stream
@@ -383,23 +387,16 @@ function Read-VpxMetadata {
                     $len = $bbat.blockSize - $offset
                 }
 
-                # Return {key, byte data}
-                @{
-                    $key = [Text.Encoding]::Unicode.GetString($fileReader.ReadBytes($len))
-                }
+                $metadata | Add-Member -MemberType NoteProperty -Name $key -Value ([Text.Encoding]::Unicode.GetString($fileReader.ReadBytes($len)))
             }
         }
     }
 
-    @{
-        'FileName' = Split-Path -Leaf $Path
-    }
-
-
-
     Write-Verbose ('"{0}","Metadata",{1:n0}' -f (Split-Path $Path -Leaf), ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
 
     $fileStream.Dispose()
+
+    $metadata
 }
 
 #
