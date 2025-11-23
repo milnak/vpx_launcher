@@ -1,10 +1,8 @@
-# TODO: Support pipeline (begin, process, end)
-
-# .\Get-TableDetails.ps1 | Select-Object FileName, TableName, TableVersion, ReleaseDate
+# .\Get-TableDetails.ps1 | Select-Object FileName, TableName, TableVersion, AuthorName `
+# | ConvertTo-Csv -NoTypeInformation | Out-File -LiteralPath 'TableDetails.csv' -Encoding UTF8
 
 [CmdletBinding()]
 Param(
-    # Folder containing VPX tables
     [string]$TablePath = (Resolve-Path 'Tables')
 )
 
@@ -404,5 +402,6 @@ function Read-VpxMetadata {
 #
 
 Get-ChildItem -LiteralPath $TablePath -File -Filter '*.vpx' | ForEach-Object {
+    Write-Progress -Activity "Processing Tables" -Status $_.BaseName
     Read-VpxMetadata -Path $_.FullName
 }
