@@ -193,9 +193,22 @@ function Invoke-Dialog {
 
             # https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.listviewitem?view=windowsdesktop-9.0
             # Make deep copy of Items and sort
-            $items = $this.Items `
-            | ForEach-Object { $_ } `
-            | Sort-Object -Descending:$script:listViewSort.Descending -Property @{ Expression = { $_.SubItems[$script:listViewSort.Column].Text } }
+
+            if ($script:listViewSort.Column -eq 1) {
+                # When sorting by Manufacturer, also sort by year
+                $items = $this.Items `
+                | ForEach-Object { $_ } `
+                | Sort-Object -Descending:$script:listViewSort.Descending  -Property `
+                @{Expression = { $_.SubItems[$script:listViewSort.Column].Text } }, @{Expression = { $_.SubItems[2].Text } }
+            }
+
+            else {
+                $items = $this.Items `
+                | ForEach-Object { $_ } `
+                | Sort-Object -Descending:$script:listViewSort.Descending -Property @{
+                    Expression = { $_.SubItems[$script:listViewSort.Column].Text }
+                }
+            }
 
             $this.Items.Clear()
             $this.ShowGroups = $false
