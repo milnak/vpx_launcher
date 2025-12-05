@@ -2,7 +2,8 @@
 
 [CmdletBinding()]
 Param(
-    [string]$TablePath = (Resolve-Path 'Tables')
+    [string]$TablePath = (Resolve-Path 'Tables'),
+    [string]$Filter = '*.vpx'
 )
 
 #######################################################################################################################
@@ -405,7 +406,7 @@ function Read-VpxMetadata {
 
 # REVIEW: Is .Version binary?
 # REVIEW: Are .CustomInfoTags binary?
-Get-ChildItem -LiteralPath $TablePath -File -Filter '*.vpx' | ForEach-Object {
+Get-ChildItem -LiteralPath $TablePath -File -Filter $Filter | ForEach-Object {
     Write-Progress -Activity "Processing Tables" -Status $_.BaseName
     Read-VpxMetadata -Path $_.FullName
     # $metadata = Read-VpxMetadata -Path $_.FullName
