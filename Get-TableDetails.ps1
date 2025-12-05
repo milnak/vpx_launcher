@@ -406,7 +406,7 @@ function Read-VpxMetadata {
 
 # REVIEW: Is .Version binary?
 # REVIEW: Are .CustomInfoTags binary?
-Get-ChildItem -LiteralPath $TablePath -File -Filter $Filter | ForEach-Object {
+Get-ChildItem -LiteralPath $TablePath -File -Filter $Filter -Recurse -Depth 1 | ForEach-Object {
     Write-Progress -Activity "Processing Tables" -Status $_.BaseName
     Read-VpxMetadata -Path $_.FullName
     # $metadata = Read-VpxMetadata -Path $_.FullName
