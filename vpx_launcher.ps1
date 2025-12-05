@@ -1,3 +1,4 @@
+[CmdletBinding()]
 Param(
     # Location to the VPinball EXE
     [string]$PinballExe = (Resolve-Path 'VPinballX64.exe'),
@@ -7,7 +8,7 @@ Param(
     [int]$Display = -1
 )
 
-$script:launcherVersion = '1.4.1'
+$script:launcherVersion = '1.4.2'
 
 $script:colorScheme = @{
     # "Ubuntu Custom"
@@ -220,7 +221,8 @@ function Invoke-Dialog {
     $listView.add_MouseDoubleClick(
         {
             # $_ : Windows.Forms.MouseEventArgs
-            $tablePath = Join-Path $TablePath $listView.SelectedItems.Tag
+            # $tablePath = Join-Path $TablePath $listView.SelectedItems.Tag
+            $tablePath = $listView.SelectedItems.Tag
 
             Invoke-Game -LaunchButton $buttonLaunch -PinballExe $PinballExe -TablePath $tablePath
         }
@@ -283,7 +285,8 @@ function Invoke-Dialog {
 
     $buttonLaunch.Add_Click(
         {
-            $tablePath = Join-Path $TablePath $listView.SelectedItems.Tag
+            # $tablePath = Join-Path $TablePath $listView.SelectedItems.Tag
+            $tablePath = $listView.SelectedItems.Tag
 
             Invoke-Game -LaunchButton $buttonLaunch -PinballExe $PinballExe -TablePath $tablePath
 
@@ -379,6 +382,10 @@ function Parse-Filenames {
         [string[]]$VpxFiles
     )
 
+    if ($VpxFiles.Count -eq 0) {
+        return @()
+    }
+
     $data = foreach ($vpxFile in $VpxFiles) {
         $baseName = [IO.Path]::GetFileNameWithoutExtension($vpxFile)
 
@@ -439,7 +446,7 @@ if ($Display -ne -1) {
 }
 
 
-$vpxFiles = (Get-ChildItem -File -LiteralPath $TablePath -Include '*.vpx').Name
+$vpxFiles = (Get-ChildItem -Recurse -Depth 1 -File -LiteralPath $TablePath -Include '*.vpx').FullName
 
 # Read in database
 $tables = Parse-Filenames -VpxFiles $vpxFiles
