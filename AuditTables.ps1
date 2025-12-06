@@ -102,7 +102,7 @@ foreach ($table in (Get-ChildItem -LiteralPath $TablePath -File -Filter '*.vpx' 
             if ($ShowValid) {
                 # Folder AND VPX filename match
 
-                Write-Host  "Found match: $AnsiBoldGreen$($found).vpx$AnsiResetAll"
+                Write-Host  "Match: $AnsiBoldGreen$($found).vpx$AnsiResetAll"
             }
         }
         else {
@@ -114,7 +114,7 @@ foreach ($table in (Get-ChildItem -LiteralPath $TablePath -File -Filter '*.vpx' 
             Write-Host ("  Metadata: $($AnsiBoldYellow){0}, {1}, {2}$AnsiResetAll" `
                     -f $metadata.TableName, $metadata.AuthorName, $metadata.TableVersion)
             foreach ($entry in $entries) {
-                Write-Host "  Maybe: $AnsiBoldCyan$($entry.GameFileName)$AnsiResetAll - $AnsiBoldPurple$($entry.WebLink2URL)$AnsiResetAll"
+                Write-Host "  Maybe: $AnsiBoldPurple$($entry.GameFileName)$AnsiResetAll - $AnsiBoldBlue$($entry.WebLink2URL)$AnsiResetAll"
             }
         }
     }
@@ -126,9 +126,14 @@ foreach ($table in (Get-ChildItem -LiteralPath $TablePath -File -Filter '*.vpx' 
         Write-Verbose "Looking for '$tableName' in PUPlookup (GameName)"
         # TODO: Remove prefixed 'the', 'a', 'an' for better matching
         $suggestions = $puplookup.GameName | Where-Object { $_ -like "*$tableName*" } | Select-Object -Unique | Sort-Object
-        Write-Host "Unknown folder name: $AnsiBoldWhite$($parentDirectory)$AnsiResetAll"
-        foreach ($suggestion in $suggestions) {
-            Write-Host "  Maybe: $AnsiBoldCyan$suggestion$AnsiResetAll"
+        Write-Host "Folder mismatch: $AnsiBoldWhite$($parentDirectory)$AnsiResetAll"
+        if ($suggestions.Count -ne 0) {
+            foreach ($suggestion in $suggestions) {
+                Write-Host "  Maybe: $AnsiBoldCyan$suggestion$AnsiResetAll"
+            }
+        }
+        else {
+            Write-Host "  $($AnsiBoldRed)No suggestions found.$AnsiResetAll"
         }
     }
 
