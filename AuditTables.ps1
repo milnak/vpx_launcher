@@ -108,13 +108,19 @@ foreach ($table in (Get-ChildItem -LiteralPath $TablePath -File -Filter '*.vpx' 
         else {
             # Folder match, but VPX filename mismatch
 
-            Write-Host "Filename Mismatch: $AnsiBoldWhite$($table.BaseName)$AnsiResetAll"
+            Write-Host "Filename Mismatch: ($parentDirectory)\$AnsiBoldWhite$($table.BaseName)$AnsiResetAll"
             $FullPath = "$($table.DirectoryName)/$($table.BaseName).vpx"
             $metadata = Read-VpxMetadata $FullPath
-            Write-Host ("  Metadata: $($AnsiBoldYellow){0}, {1}, {2}$AnsiResetAll" `
-                    -f $metadata.TableName, $metadata.AuthorName, $metadata.TableVersion)
-            foreach ($entry in $entries) {
-                Write-Host "  Maybe: $AnsiBoldPurple$($entry.GameFileName)$AnsiResetAll - $AnsiBoldBlue$($entry.WebLink2URL)$AnsiResetAll"
+            Write-Host ("  Metadata: $($AnsiBoldYellow){0}, {1}, {2} ({3})$AnsiResetAll" `
+                    -f $metadata.TableName, $metadata.AuthorName, $metadata.TableVersion, $metadata.ReleaseDate)
+            if ($entries.Count -eq 1) {
+                $AnsiColor = $AnsiBoldGreen
+            }
+            else {
+                $AnsiColor = $AnsiBoldPurple
+            }
+            foreach ($entry in ($entries | Sort-Object -Descending GAMEVER)) {
+                Write-Host "  Maybe: $AnsiColor$($entry.GameFileName)$AnsiResetAll ($($entry.GAMEVER)) - $AnsiBoldBlue$($entry.WebLink2URL)$AnsiResetAll"
             }
         }
     }
@@ -128,8 +134,14 @@ foreach ($table in (Get-ChildItem -LiteralPath $TablePath -File -Filter '*.vpx' 
         $suggestions = $puplookup.GameName | Where-Object { $_ -like "*$tableName*" } | Select-Object -Unique | Sort-Object
         Write-Host "Folder mismatch: $AnsiBoldWhite$($parentDirectory)$AnsiResetAll"
         if ($suggestions.Count -ne 0) {
+            if ($suggestions.Count -eq 1) {
+                $AnsiColor = $AnsiBoldGreen
+            }
+            else {
+                $AnsiColor = $AnsiBoldCyan
+            }
             foreach ($suggestion in $suggestions) {
-                Write-Host "  Maybe: $AnsiBoldCyan$suggestion$AnsiResetAll"
+                Write-Host "  Maybe: $AnsiColor$suggestion$AnsiResetAll"
             }
         }
         else {
