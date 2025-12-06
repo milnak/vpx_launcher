@@ -125,9 +125,9 @@ foreach ($table in (Get-ChildItem -LiteralPath $TablePath -File -Filter '*.vpx' 
         $tableName = ($parentDirectory -split ' \(')[0]
         Write-Verbose "Looking for '$tableName' in PUPlookup (GameName)"
         # TODO: Remove prefixed 'the', 'a', 'an' for better matching
-        $suggestion = $puplookup.GameName | Where-Object { $_ -like "$tableName (*" } | Select-Object -Unique -First 1
+        $suggestions = $puplookup.GameName | Where-Object { $_ -like "*$tableName*" } | Select-Object -Unique | Sort-Object
         Write-Host "Unknown folder name: $AnsiBoldWhite$($parentDirectory)$AnsiResetAll"
-        if ($suggestion) {
+        foreach ($suggestion in $suggestions) {
             Write-Host "  Maybe: $AnsiBoldCyan$suggestion$AnsiResetAll"
         }
     }
