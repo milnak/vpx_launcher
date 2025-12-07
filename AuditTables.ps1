@@ -92,7 +92,7 @@ foreach ($table in (Get-ChildItem -LiteralPath $TablePath -File -Filter '*.vpx' 
         foreach ($entry in $entries) {
             Write-Verbose "'$($entry.GameFileName)' -eq '$($table.BaseName)' ?"
             if ($entry.GameFileName -eq $table.BaseName) {
-                $found = $entry.GameFileName
+                $found = $table
                 break
             }
         }
@@ -100,18 +100,21 @@ foreach ($table in (Get-ChildItem -LiteralPath $TablePath -File -Filter '*.vpx' 
 
         if ($found) {
             if ($ShowValid) {
-                # Folder AND VPX filename match
+                # Folder AND VPX filename match!
 
-                Write-Host  "Match: $AnsiBoldGreen$($found).vpx$AnsiResetAll"
+                Write-Host  "Match: $parentDirectory\$AnsiBoldGreen$($table.BaseName).vpx$AnsiResetAll"
+                $metadata = Read-VpxMetadata "$($table.DirectoryName)/$($table.BaseName).vpx"
+                Write-Host ("  Metadata: {0}, {1}, {2} ({3})" `
+                        -f $metadata.TableName, $metadata.AuthorName, $metadata.TableVersion, $metadata.ReleaseDate)
             }
         }
         else {
             # Folder match, but VPX filename mismatch
 
-            Write-Host "Filename Mismatch: ($parentDirectory)\$AnsiBoldWhite$($table.BaseName)$AnsiResetAll"
+            Write-Host "Filename Mismatch: $parentDirectory\$AnsiBoldRed$($table.BaseName)$AnsiResetAll"
             $FullPath = "$($table.DirectoryName)/$($table.BaseName).vpx"
             $metadata = Read-VpxMetadata $FullPath
-            Write-Host ("  Metadata: $($AnsiBoldYellow){0}, {1}, {2} ({3})$AnsiResetAll" `
+            Write-Host ("  Metadata: {0}, {1}, {2} ({3})" `
                     -f $metadata.TableName, $metadata.AuthorName, $metadata.TableVersion, $metadata.ReleaseDate)
             if ($entries.Count -eq 1) {
                 $AnsiColor = $AnsiBoldGreen
@@ -132,7 +135,7 @@ foreach ($table in (Get-ChildItem -LiteralPath $TablePath -File -Filter '*.vpx' 
         Write-Verbose "Looking for '$tableName' in PUPlookup (GameName)"
         # TODO: Remove prefixed 'the', 'a', 'an' for better matching
         $suggestions = $puplookup.GameName | Where-Object { $_ -like "*$tableName*" } | Select-Object -Unique | Sort-Object
-        Write-Host "Folder mismatch: $AnsiBoldWhite$($parentDirectory)$AnsiResetAll"
+        Write-Host "Folder mismatch: $AnsiBoldRed$($parentDirectory)$AnsiResetAll"
         if ($suggestions.Count -ne 0) {
             if ($suggestions.Count -eq 1) {
                 $AnsiColor = $AnsiBoldGreen
