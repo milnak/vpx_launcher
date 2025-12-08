@@ -88,15 +88,14 @@ foreach ($table in (Get-ChildItem -LiteralPath $TablePath -File -Filter '*.vpx' 
         # Found the matching folder name, now check the VPX file name
 
         Write-Verbose "Found $($entries.Count) matching entries for GameName '$parentDirectory'"
-        $found = $null
+        $found = $false
         foreach ($entry in $entries) {
             Write-Verbose "'$($entry.GameFileName)' -eq '$($table.BaseName)' ?"
             if ($entry.GameFileName -eq $table.BaseName) {
-                $found = $table
+                $found = $true
                 break
             }
         }
-
 
         if ($found) {
             if ($ShowValid) {
@@ -104,20 +103,20 @@ foreach ($table in (Get-ChildItem -LiteralPath $TablePath -File -Filter '*.vpx' 
 
                 Write-Host  "Match: $parentDirectory\$AnsiBoldGreen$($table.BaseName).vpx$AnsiResetAll"
                 $metadata = Read-VpxMetadata "$($table.DirectoryName)/$($table.BaseName).vpx"
-                Write-Host ("  Metadata: {0}, {1}, {2} ({3})" `
+                Write-Host ("  Metadata: $AnsiBoldYellow{0} ({3}) {1} {2}$AnsiResetAll" `
                         -f $metadata.TableName, $metadata.AuthorName, $metadata.TableVersion, $metadata.ReleaseDate)
             }
         }
         else {
             # Folder match, but VPX filename mismatch
 
-            Write-Host "Filename Mismatch: $parentDirectory\$AnsiBoldRed$($table.BaseName)$AnsiResetAll"
+            Write-Host "Filename Mismatch: $AnsiBoldRed$($table.BaseName)$AnsiResetAll in '$parentDirectory'"
             $FullPath = "$($table.DirectoryName)/$($table.BaseName).vpx"
             $metadata = Read-VpxMetadata $FullPath
-            Write-Host ("  Metadata: {0}, {1}, {2} ({3})" `
+            Write-Host ("  Metadata: $AnsiBoldYellow{0} ({3}) {1} {2}$AnsiResetAll" `
                     -f $metadata.TableName, $metadata.AuthorName, $metadata.TableVersion, $metadata.ReleaseDate)
             if ($entries.Count -eq 1) {
-                $AnsiColor = $AnsiBoldGreen
+                $AnsiColor = $AnsiBoldYellow
             }
             else {
                 $AnsiColor = $AnsiBoldPurple
@@ -138,7 +137,7 @@ foreach ($table in (Get-ChildItem -LiteralPath $TablePath -File -Filter '*.vpx' 
         Write-Host "Folder mismatch: $AnsiBoldRed$($parentDirectory)$AnsiResetAll"
         if ($suggestions.Count -ne 0) {
             if ($suggestions.Count -eq 1) {
-                $AnsiColor = $AnsiBoldGreen
+                $AnsiColor = $AnsiBoldYellow
             }
             else {
                 $AnsiColor = $AnsiBoldCyan
