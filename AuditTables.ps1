@@ -89,6 +89,7 @@ foreach ($table in (Get-ChildItem -LiteralPath $TablePath -File -Filter '*.vpx' 
 
         Write-Verbose "Found $($entries.Count) matching entries for GameName '$parentDirectory'"
         $found = $false
+
         foreach ($entry in $entries) {
             Write-Verbose "'$($entry.GameFileName)' -eq '$($table.BaseName)' ?"
             if ($entry.GameFileName -eq $table.BaseName) {
@@ -103,8 +104,9 @@ foreach ($table in (Get-ChildItem -LiteralPath $TablePath -File -Filter '*.vpx' 
 
                 Write-Host  "Match: $parentDirectory\$AnsiBoldGreen$($table.BaseName).vpx$AnsiResetAll"
                 $metadata = Read-VpxMetadata "$($table.DirectoryName)/$($table.BaseName).vpx"
-                Write-Host ("  Metadata: $AnsiBoldYellow{0} ({3}) {1} {2}$AnsiResetAll" `
+                Write-Host ("  Metadata: $AnsiBoldYellow{0} {1} {2} {3}$AnsiResetAll" `
                         -f $metadata.TableName, $metadata.AuthorName, $metadata.TableVersion, $metadata.ReleaseDate)
+                Write-Host ''
             }
         }
         else {
@@ -113,7 +115,7 @@ foreach ($table in (Get-ChildItem -LiteralPath $TablePath -File -Filter '*.vpx' 
             Write-Host "Filename Mismatch: $AnsiBoldRed$($table.BaseName)$AnsiResetAll in '$parentDirectory'"
             $FullPath = "$($table.DirectoryName)/$($table.BaseName).vpx"
             $metadata = Read-VpxMetadata $FullPath
-            Write-Host ("  Metadata: $AnsiBoldYellow{0} ({3}) {1} {2}$AnsiResetAll" `
+            Write-Host ("  Metadata: $AnsiBoldYellow{0} {1} {2} {3}$AnsiResetAll" `
                     -f $metadata.TableName, $metadata.AuthorName, $metadata.TableVersion, $metadata.ReleaseDate)
             if ($entries.Count -eq 1) {
                 $AnsiColor = $AnsiBoldYellow
@@ -151,5 +153,7 @@ foreach ($table in (Get-ChildItem -LiteralPath $TablePath -File -Filter '*.vpx' 
         }
     }
 
-    Write-Host ""
+    if (-not $found) {
+        Write-Host ""
+    }
 }
