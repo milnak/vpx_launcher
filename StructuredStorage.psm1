@@ -158,11 +158,13 @@ function Read-VpxMetadata {
             -or $header.s_shift -gt $header.b_shift `
             -or $header.b_shift -le 6 `
             -or $header.b_shift -ge 31) {
-        throw 'Sanity checks failed'
+        Write-Verbose 'Sanity checks failed'
+        return @{}
     }
     $pole_magic = 0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1
     if (Compare-Object -ReferenceObject $pole_magic -DifferenceObject $header.id) {
-        throw 'Invalid signature'
+        Write-Verbose 'Invalid signature'
+        return @{}
     }
 
     # size of sectors, typically 9 indicating 512-byte sectors and 12 for 4096
