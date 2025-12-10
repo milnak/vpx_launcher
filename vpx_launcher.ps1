@@ -25,13 +25,10 @@ $script:colorScheme = @{
 $script:metadataCache = @{}
 $script:launchCount = @{}
 
-#  ___                               _       _                      _    ___              _
-# |_ _|_ _  __ _ _ ___ _ __  ___ _ _| |_ ___| |   __ _ _  _ _ _  __| |_ / __|___ _  _ _ _| |_
-#  | || ' \/ _| '_/ -_) '  \/ -_) ' \  _|___| |__/ _` | || | ' \/ _| ' \ (__/ _ \ || | ' \  _|
-# |___|_||_\__|_| \___|_|_|_\___|_||_\__|   |____\__,_|\_,_|_||_\__|_||_\___\___/\_,_|_||_\__|
-#
+# =============================================================================
+# Write-IncrementedLaunchCount
 
-function Increment-LaunchCount {
+function Write-IncrementedLaunchCount {
     param ([Parameter(Mandatory)][string]$FileName)
 
     $count = 1
@@ -83,7 +80,7 @@ function Invoke-Game {
     $buttonLaunch.Text = $prevText
 
     $filename = (Split-Path -Path $TablePath -Leaf).ToLower()
-    $count = Increment-LaunchCount -FileName $filename
+    $count = Write-IncrementedLaunchCount -FileName $filename
 
     # Update listview play count
     $listView.SelectedItems[0].SubItems[3].Text = $count
@@ -91,14 +88,52 @@ function Invoke-Game {
     Write-Verbose ('VPX (filename: {0}) exited' -f $filename)
 }
 
-#  ___             _           ___  _      _
-# |_ _|_ ___ _____| |_____ ___|   \(_)__ _| |___  __ _
-#  | || ' \ V / _ \ / / -_)___| |) | / _` | / _ \/ _` |
-# |___|_||_\_/\___/_\_\___|   |___/|_\__,_|_\___/\__, |
-#                                                |___/
+# =============================================================================
+# Invoke-ListRefresh
 
-function Invoke-Dialog {
-    Param($Data)
+function Invoke-ListRefresh {
+    param(
+        [Parameter(Mandatory)][string]$TablePath,
+        [Parameter(Mandatory)][object]$listView
+    )
+
+    $listView.Items.Clear()
+
+    # Read in Read-VpxFileMetadatadatabase
+    $vpxFiles = (Get-ChildItem -Recurse -Depth 1 -File -LiteralPath $TablePath -Include '*.vpx').FullName
+    $tables = Read-VpxFileMetadata -VpxFiles $vpxFiles
+    if ($tables.Count -eq 0) {
+        Write-Warning "No tables found in $TablePath"
+        return
+    }
+
+    foreach ($table in $tables) {
+        $listItem = New-Object -TypeName 'Windows.Forms.ListViewItem'
+        $listItem.Text = $table.Table
+        $listItem.Tag = $table.FileName
+        $listItem.SubItems.Add($table.Manufacturer) | Out-Null
+        $listItem.SubItems.Add($table.Year) | Out-Null
+        $launchCount = $script:launchCount[$listItem.Tag]
+        if (!$launchCount) { $launchCount = '0' }
+        $listItem.SubItems.Add($launchCount) | Out-Null
+
+        $listView.Items.Add($listItem) | Out-Null
+    }
+
+    $listView.Items[0].Selected = $true
+
+    $listView.Refresh()
+}
+
+# =============================================================================
+# Invoke-MainWindow
+
+function Invoke-MainWindow {
+    param (
+        [Parameter(Mandatory)][string]$TablePath
+    )
+
+    Write-Verbose "Using table path $TablePath"
 
     $script:listViewSort = @{
         Column     = 0
@@ -134,20 +169,7 @@ function Invoke-Dialog {
 
     $panelListView.Controls.Add($listView)
 
-    foreach ($item in $Data) {
-        $listItem = New-Object -TypeName 'Windows.Forms.ListViewItem'
-        $listItem.Text = $item.Table
-        $listItem.Tag = $item.FileName
-        $listItem.SubItems.Add($item.Manufacturer) | Out-Null
-        $listItem.SubItems.Add($item.Year) | Out-Null
-        $launchCount = $script:launchCount[$listItem.Tag]
-        if (!$launchCount) { $launchCount = '0' }
-        $listItem.SubItems.Add($launchCount) | Out-Null
-
-        $listView.Items.Add($listItem) | Out-Null
-    }
-
-    $listView.Items[0].Selected = $true
+    Invoke-ListRefresh -TablePath $TablePath -ListView $listView
 
     $listView.add_SelectedIndexChanged({
             if ($listView.SelectedItems.Count -eq 1) {
@@ -225,6 +247,33 @@ function Invoke-Dialog {
             $tablePath = $listView.SelectedItems.Tag
 
             Invoke-Game -LaunchButton $buttonLaunch -PinballExe $PinballExe -TablePath $tablePath
+        }
+    )
+
+    $form.KeyPreview = $true
+
+    $listView.Add_KeyDown({
+            # $_ : Windows.Forms.KeyEventArgs
+            if ($_.KeyCode -eq 'F5') {
+                Write-Verbose 'F5 pressed. Refreshing.'
+                Invoke-ListRefresh -TablePath $TablePath -listView $listView
+                $_.Handled = $true
+            }
+        })
+
+    $listView.Add_KeyUp({
+            if ($_.Control -and $_.KeyCode -eq 'C') {
+                Write-Verbose 'Ctrl-C pressed. Copying.'
+
+                $meta = @{
+                    TableName    = $listView.SelectedItems.Text
+                    TableVersion = $listView.SelectedItems.SubItems[2].Text
+                    AuthorName   = $listView.SelectedItems.SubItems[1].Text
+                }
+                $meta | ConvertTo-Json | Set-Clipboard
+
+                $_.Handled = $true
+            }
         }
     )
 
@@ -354,30 +403,26 @@ function Read-HistoryDat {
     }
 }
 
-function Append-Article {
-    param ([Parameter(Mandatory)][string]$String)
+# =============================================================================
+# ConvertTo-AppendedArticle
 
-    $appended = $false
+function ConvertTo-AppendedArticle {
+    param ([Parameter(Mandatory)][string]$String)
 
     'the', 'a', 'an' | ForEach-Object {
         if ($String -like "$_ *") {
             '{0}, {1}' -f $String.SubString($_.Length + 1), $String.SubString(0, $_.Length)
-            $appended = $true
+            return
         }
     }
 
-    if (!$appended) {
-        $String
-    }
+    $String
 }
 
-#  ___                      ___ _ _
-# | _ \__ _ _ _ ___ ___ ___| __(_) |___ _ _  __ _ _ __  ___ ___
-# |  _/ _` | '_(_-</ -_)___| _|| | / -_) ' \/ _` | '  \/ -_|_-<
-# |_| \__,_|_| /__/\___|   |_| |_|_\___|_||_\__,_|_|_|_\___/__/
-#
+# =============================================================================
+# Read-VpxFileMetadata
 
-function Parse-Filenames {
+function Read-VpxFileMetadata {
     param (
         [string[]]$VpxFiles
     )
@@ -387,13 +432,14 @@ function Parse-Filenames {
     }
 
     $data = foreach ($vpxFile in $VpxFiles) {
+        Write-Verbose "Parsing filename: $vpxFile"
         $baseName = [IO.Path]::GetFileNameWithoutExtension($vpxFile)
 
         # Use regex to try to guess table, manufacturer and year from filename.
         if ($baseName -match '(.+)[ _]?\((.+)(\d{4})\)') {
             [PSCustomObject]@{
                 FileName     = $vpxFile
-                Table        = Append-Article -String $matches[1].Trim()
+                Table        = ConvertTo-AppendedArticle -String $matches[1].Trim()
                 Manufacturer = $matches[2].Trim()
                 Year         = $matches[3].Trim()
             }
@@ -446,15 +492,6 @@ if ($Display -ne -1) {
 }
 
 
-$vpxFiles = (Get-ChildItem -Recurse -Depth 1 -File -LiteralPath $TablePath -Include '*.vpx').FullName
-
-# Read in database
-$tables = Parse-Filenames -VpxFiles $vpxFiles
-if ($tables.Count -eq 0) {
-    Write-Warning "No tables found in $TablePath"
-    return
-}
-
 $cfgPath = Join-Path -Path $env:LocalAppData -ChildPath 'vpx_launcher.json'
 
 # Read in configuration
@@ -472,7 +509,7 @@ if (Test-Path -LiteralPath $cfgPath -PathType Leaf) {
 # Write-Host -ForegroundColor Red "'$($found.Table)' Bio:"
 # ($history | Where-Object ROM -eq $found.ROM).Bio | ForEach-Object { Write-Host -ForegroundColor DarkCyan $_ }
 
-Invoke-Dialog -Data $tables | Out-Null
+Invoke-MainWindow -TablePath $TablePath | Out-Null
 
 # Write out configuration
 Write-Verbose "Writing config to $cfgPath"
