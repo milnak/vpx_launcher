@@ -85,6 +85,10 @@ function Invoke-Game {
     # Update listview play count
     $listView.SelectedItems[0].SubItems[3].Text = $count
 
+    # Remove this file that's left over after running a game.
+    Remove-Item ('{0}/altsound.log' -f (Split-Path -Parent $TablePath)) -ErrorAction SilentlyContinue
+
+
     Write-Verbose ('VPX (filename: {0}) exited' -f $filename)
 }
 
@@ -123,6 +127,7 @@ function Invoke-ListRefresh {
     $listView.Items[0].Selected = $true
 
     $listView.Refresh()
+    $listView.Focus()
 }
 
 # =============================================================================
@@ -352,7 +357,7 @@ function Invoke-MainWindow {
 
     $form.Add_Activated({ $listView.Select() })
 
-    $form.Text = ('VPX Launcher v{0} - {1} machines' -f $script:launcherVersion, $listView.Items.Count)
+    $form.Text = ('VPX Launcher v{0}' -f $script:launcherVersion)
     $form.Width = 600
     $form.Height = 600
     $form.FormBorderStyle = [Windows.Forms.FormBorderStyle]::FixedSingle
