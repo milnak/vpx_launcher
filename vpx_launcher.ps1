@@ -101,6 +101,11 @@ function Invoke-ListRefresh {
         [Parameter(Mandatory)][object]$listView
     )
 
+    $selectedItemText = $null
+    if ($listView.SelectedItems.Count -eq 1) {
+        $selectedItemText = $listView.SelectedItems.Text
+    }
+
     $listView.Items.Clear()
 
     # Read in Read-VpxFileMetadatadatabase
@@ -124,10 +129,25 @@ function Invoke-ListRefresh {
         $listView.Items.Add($listItem) | Out-Null
     }
 
-    $listView.Items[0].Selected = $true
 
     $listView.Refresh()
     $listView.Focus()
+
+    if ($listView.Items.Count -ne 0) {
+        if ($selectedItemText) {
+            $found = $listView.FindItemWithText($selectedItemText)
+            if ($found) {
+                $found.Selected = $true
+                $listView.EnsureVisible($found.Index)
+            }
+            else {
+                $listView.Items[0].Selected = $true
+            }
+        }
+        else {
+            $listView.Items[0].Selected = $true
+        }
+    }
 }
 
 # =============================================================================
