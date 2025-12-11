@@ -79,8 +79,8 @@ function Invoke-Game {
     $buttonLaunch.Enabled = $true
     $buttonLaunch.Text = $prevText
 
-    $filename = (Split-Path -Path $TablePath -Leaf).ToLower()
-    $count = Write-IncrementedLaunchCount -FileName $filename
+    $baseName = [IO.Path]::GetFileNameWithoutExtension((Split-Path -Path $TablePath -Leaf).ToLower())
+    $count = Write-IncrementedLaunchCount -FileName $baseName
 
     # Update listview play count
     # TODO: Create global defines for column names / indices
@@ -91,7 +91,7 @@ function Invoke-Game {
     Remove-Item "$tableFolder/altsound.log" -ErrorAction SilentlyContinue
 
     if (Test-Path "$tableFolder/crash.dmp" -PathType Leaf ) {
-        Write-Host -ForegroundColor Red "Table '$fileName' crashed!"
+        Write-Host -ForegroundColor Red "Table '$baseName' crashed!"
         Remove-Item "$tableFolder/crash.dmp" -ErrorAction SilentlyContinue
         Remove-Item "$tableFolder/crash.txt" -ErrorAction SilentlyContinue
     }
@@ -130,7 +130,7 @@ function Invoke-ListRefresh {
         $listItem.SubItems.Add($table.Manufacturer) | Out-Null
         $listItem.SubItems.Add($table.Year) | Out-Null
         $listItem.SubItems.Add($table.Details) | Out-Null ## TESTX
-        $launchCount = $script:launchCount[$listItem.Tag]
+        $launchCount = $script:launchCount[[IO.Path]::GetFileNameWithoutExtension($listItem.Tag)]
         if (!$launchCount) { $launchCount = '0' }
         $listItem.SubItems.Add($launchCount) | Out-Null
 
@@ -491,7 +491,8 @@ function Read-VpxFileMetadata {
         }
     }
 
-    $data.GetEnumerator() | Sort-Object -Unique Table
+    # Note: Not using -Unique so that each folder can have .VPX variants.
+    $data.GetEnumerator() | Sort-Object Table
 }
 
 #  __  __      _

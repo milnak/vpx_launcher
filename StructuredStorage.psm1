@@ -301,40 +301,27 @@ function Read-VpxMetadata {
 
     Write-Verbose ('"{0}","Block chain",{1:n0}' -f (Split-Path $Path -Leaf), ((New-TimeSpan -Start $StartTime -End (Get-Date)).TotalMilliseconds))
 
-    #  __  __     _           _      _
-    # |  \/  |___| |_ __ _ __| |__ _| |_ __ _
-    # | |\/| / -_)  _/ _` / _` / _` |  _/ _` |
-    # |_|  |_\___|\__\__,_\__,_\__,_|\__\__,_|
-    #
+    # -------------------------------------------------------------------------
+    # Return METADATA
+    # TODO: Remove this from this file and move to vpx scripts.
 
     $metadata = [PSCustomObject]@{
         'FileName' = (Get-Item -LiteralPath $Path).BaseName
     }
 
     $StartTime = Get-Date
-
+    # 'Screenshot',
     'AuthorEmail',
     'AuthorName',
     'AuthorWebSite',
-    'Collection*',
-    'CustomInfoTags',
-    'GameData',
-    'GameItem*',
-    'GameStg',
-    'Image*',
-    'MAC',
     'ReleaseDate',
-    'Sound*',
-    'Root Entry',
     'TableBlurb',
     'TableDescription',
-    'TableInfo',
     'TableName',
     'TableRules',
     'TableSaveDate',
     'TableSaveRev',
-    'TableVersion',
-    'Version'
+    'TableVersion' `
     | ForEach-Object {
         $key = $_
         $entry = $dirtree | Where-Object Name -eq $key
@@ -379,7 +366,9 @@ function Read-VpxMetadata {
                     $len = $bbat.blockSize - $offset
                 }
 
-                $metadata | Add-Member -MemberType NoteProperty -Name $key -Value ([Text.Encoding]::Unicode.GetString($fileReader.ReadBytes($len)))
+                $value = [Text.Encoding]::Unicode.GetString($fileReader.ReadBytes($len))
+                $metadata | Add-Member -MemberType NoteProperty -Name $key -Value $value
+                Write-Verbose "Added '$key' = '$value'"
             }
         }
     }

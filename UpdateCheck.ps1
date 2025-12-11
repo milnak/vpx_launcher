@@ -1,4 +1,4 @@
-Param([string]$Path = '.')
+﻿Param([string]$Path = '.')
 
 function Check-GithubUpdate {
     param (
@@ -46,8 +46,8 @@ else {
 
 ### Visual PinMAME
 
-mkdir 'VPinMAME' -ErrorAction SilentlyContinue | Out-Null
-mkdir 'VPinMAME/roms' -ErrorAction SilentlyContinue | Out-Null
+mkdir 'VPinMAME' -ErrorAction SilentlyContinue
+mkdir 'VPinMAME/roms' -ErrorAction SilentlyContinue
 
 Write-Host -ForegroundColor Cyan 'Visual PinMAME:'
 $vpinmame_path = Resolve-Path -LiteralPath (Join-Path -Path $Path -ChildPath 'VPinMAME') -ErrorAction SilentlyContinue
