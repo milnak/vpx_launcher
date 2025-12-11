@@ -122,6 +122,7 @@ function Invoke-ListRefresh {
         $listItem.Tag = $table.FileName
         $listItem.SubItems.Add($table.Manufacturer) | Out-Null
         $listItem.SubItems.Add($table.Year) | Out-Null
+        $listItem.SubItems.Add($table.Details) | Out-Null ## TESTX
         $launchCount = $script:launchCount[$listItem.Tag]
         if (!$launchCount) { $launchCount = '0' }
         $listItem.SubItems.Add($launchCount) | Out-Null
@@ -137,8 +138,8 @@ function Invoke-ListRefresh {
         if ($selectedItemText) {
             $found = $listView.FindItemWithText($selectedItemText)
             if ($found) {
-                $found.Selected = $true
                 $listView.EnsureVisible($found.Index)
+                $found.Selected = $true
             }
             else {
                 $listView.Items[0].Selected = $true
@@ -182,14 +183,15 @@ function Invoke-MainWindow {
     $listView.FullRowSelect = $true
     $listView.MultiSelect = $false
     $listView.View = [Windows.Forms.View]::Details
-    $listView.Font = New-Object  System.Drawing.Font('Consolas', 11, [Drawing.FontStyle]::Regular)
+    $listView.Font = New-Object  System.Drawing.Font('Calibri', 12, [Drawing.FontStyle]::Regular)
     $listView.BackColor = $script:colorScheme.ListView_BackColor
     $listView.ForeColor = $script:colorScheme.ListView_ForeColor
 
 
-    $listView.Columns.Add('Table', 330) | Out-Null
+    $listView.Columns.Add('Table', 200) | Out-Null
     $listView.Columns.Add('Manufact.', 130) | Out-Null
     $listView.Columns.Add('Year', 53) | Out-Null
+    $listView.Columns.Add('Details', 130) | Out-Null
     $listView.Columns.Add('Play', 50) | Out-Null
 
     $panelListView.Controls.Add($listView)
@@ -205,10 +207,10 @@ function Invoke-MainWindow {
 
                 if (-not $meta) {
                     $meta = @{
-                        TableName     = $listView.SelectedItems.Text
-                        TableVersion  = $listView.SelectedItems.SubItems[2].Text
-                        TableSaveDate = $null
-                        AuthorName    = $listView.SelectedItems.SubItems[1].Text
+                        TableName    = $listView.SelectedItems.Text
+                        TableVersion = $listView.SelectedItems.SubItems[2].Text
+                        Details      = ''
+                        AuthorName   = $listView.SelectedItems.SubItems[1].Text
                     }
                     $script:metadataCache[$filename] = $meta
                 }
@@ -218,11 +220,11 @@ function Invoke-MainWindow {
                 if ($meta.TableVersion) {
                     $text += "$($meta.TableVersion) "
                 }
-                if ($meta.TableSaveDate) {
-                    $text += "($($meta.TableSaveDate)) "
-                }
                 if ($meta.AuthorName) {
                     $text += "by $($meta.AuthorName)"
+                }
+                if ($meta.Details) {
+                    $text += " - $($meta.Details) "
                 }
                 $label2.Text = $text
             }
@@ -461,12 +463,13 @@ function Read-VpxFileMetadata {
         $baseName = [IO.Path]::GetFileNameWithoutExtension($vpxFile)
 
         # Use regex to try to guess table, manufacturer and year from filename.
-        if ($baseName -match '(.+)[ _]?\((.+)(\d{4})\)') {
+        if ($baseName -match '(.+)[ _]?\((.+)(\d{4})\)\s*(.*)') {
             [PSCustomObject]@{
                 FileName     = $vpxFile
                 Table        = ConvertTo-AppendedArticle -String $matches[1].Trim()
                 Manufacturer = $matches[2].Trim()
                 Year         = $matches[3].Trim()
+                Details      = $matches[4].Trim()
             }
         }
         else {
@@ -475,6 +478,7 @@ function Read-VpxFileMetadata {
                 Table        = $baseName
                 Manufacturer = ''
                 Year         = ''
+                Details      = ''
             }
             Write-Warning ('Unable to parse filename "{0}"' -f $baseName)
         }
