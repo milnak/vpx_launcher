@@ -8,7 +8,7 @@ Param(
     [int]$Display = -1
 )
 
-$script:launcherVersion = '1.4.2'
+$script:launcherVersion = '1.4.3'
 
 $script:colorScheme = @{
     # "Ubuntu Custom"
@@ -83,11 +83,18 @@ function Invoke-Game {
     $count = Write-IncrementedLaunchCount -FileName $filename
 
     # Update listview play count
-    $listView.SelectedItems[0].SubItems[3].Text = $count
+    # TODO: Create global defines for column names / indices
+    $listView.SelectedItems[0].SubItems[4].Text = $count
 
     # Remove this file that's left over after running a game.
-    Remove-Item ('{0}/altsound.log' -f (Split-Path -Parent $TablePath)) -ErrorAction SilentlyContinue
+    $tableFolder = Split-Path -Parent $TablePath
+    Remove-Item "$tableFolder/altsound.log" -ErrorAction SilentlyContinue
 
+    if (Test-Path "$tableFolder/crash.dmp" -PathType Leaf ) {
+        Write-Host -ForegroundColor Red "Table '$fileName' crashed!"
+        Remove-Item "$tableFolder/crash.dmp" -ErrorAction SilentlyContinue
+        Remove-Item "$tableFolder/crash.txt" -ErrorAction SilentlyContinue
+    }
 
     Write-Verbose ('VPX (filename: {0}) exited' -f $filename)
 }
