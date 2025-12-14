@@ -8,7 +8,7 @@ Param(
     [int]$Display = -1
 )
 
-$script:launcherVersion = '1.4.3'
+$script:launcherVersion = '1.5'
 
 $script:colorScheme = @{
     # "Ubuntu Custom"
@@ -69,6 +69,10 @@ function Invoke-Game {
     for ($i = 0; $i -le $progressBar.Maximum - $progressBar.Minimum; $i++) {
         $progressBar.Value = $i
         Start-Sleep -Milliseconds 500
+        if ($win32::FindWindow('VPinball', 'Visual Pinball') -ne 0) {
+            # Visual Pinball exited immediately. maybe a game crashed or it started quickly.
+            break
+        }
     }
 
     Write-Verbose 'Waiting for VPX to exit'
@@ -83,7 +87,6 @@ function Invoke-Game {
     $count = Write-IncrementedLaunchCount -FileName $baseName
 
     # Update listview play count
-    # TODO: Create global defines for column names / indices
     $listView.SelectedItems[0].SubItems[4].Text = $count
 
     # Remove this file that's left over after running a game.
@@ -299,12 +302,14 @@ function Invoke-MainWindow {
             if ($_.Control -and $_.KeyCode -eq 'C') {
                 Write-Verbose 'Ctrl-C pressed. Copying.'
 
-                $meta = @{
-                    TableName    = $listView.SelectedItems.Text
-                    TableVersion = $listView.SelectedItems.SubItems[2].Text
-                    AuthorName   = $listView.SelectedItems.SubItems[1].Text
-                }
-                $meta | ConvertTo-Json | Set-Clipboard
+                # TODO: Create global defines for column names / indices
+                #   text = table, 1 = manuf, 2 = year, 3 = details, 4 = play
+                '{0} ({1} {2}) {3}' -f `
+                    $listView.SelectedItems.Text, `
+                    $listView.SelectedItems.SubItems[1].Text, `
+                    $listView.SelectedItems.SubItems[2].Text, `
+                    $listView.SelectedItems.SubItems[3].Text `
+                | Set-Clipboard
 
                 $_.Handled = $true
             }
