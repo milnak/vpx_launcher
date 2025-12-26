@@ -8,7 +8,7 @@ Param(
     [int]$Display = -1
 )
 
-$script:launcherVersion = '1.5'
+$script:launcherVersion = '1.6'
 
 $script:colorScheme = @{
     # "Ubuntu Custom"
@@ -140,25 +140,21 @@ function Invoke-ListRefresh {
         $listView.Items.Add($listItem) | Out-Null
     }
 
-
-    $listView.Refresh()
-    $listView.Focus()
+    $index = 0
 
     if ($listView.Items.Count -ne 0) {
         if ($selectedItemText) {
             $found = $listView.FindItemWithText($selectedItemText)
             if ($found) {
-                $listView.EnsureVisible($found.Index)
-                $found.Selected = $true
+                $index = $found.Index
             }
-            else {
-                $listView.Items[0].Selected = $true
-            }
-        }
-        else {
-            $listView.Items[0].Selected = $true
         }
     }
+
+    $listView.SelectedItems.Clear()
+    $listView.Items[$index].Selected = $true
+    $listView.Items[$index].Focused = $true
+    $listView.Items[$index].EnsureVisible()
 }
 
 # =============================================================================
