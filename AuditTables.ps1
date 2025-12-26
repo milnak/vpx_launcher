@@ -8,6 +8,7 @@
 param (
     [string]$TablePath = (Resolve-Path 'Tables'),
     [string]$PupLookupCsvFilePath = '.\puplookup.csv',
+    # e.g. .\AuditTables.ps1 -ShowValid | ConvertTo-Csv
     [switch]$ShowValid
 )
 
@@ -69,15 +70,24 @@ foreach ($table in $tables) {
             if ($ShowValid) {
                 # Folder AND VPX filename match!
 
-                Write-Host  "Match: $parentFolderName\$AnsiBoldGreen$($table.BaseName).vpx$AnsiResetAll"
                 if ($entry.Rom -ne '') {
                     $requiredRoms += $entry.Rom
                 }
 
                 $metadata = Read-VpxMetadata "$($table.DirectoryName)/$($table.BaseName).vpx"
-                Write-Host ("  Name: {0}`n  Author: {1}`n  Version: {2}`n  Date: {3}" `
-                        -f $metadata.TableName, $metadata.AuthorName, $metadata.TableVersion, $metadata.ReleaseDate)
-                Write-Host ''
+
+                # For ShowValid, use pipeline so that it can be captured or redirected
+                [PSCustomObject]@{
+                    FileName = $table.BaseName
+                    Name     = $metadata.TableName
+                    Author   = $metadata.AuthorName
+                    Version  = $metadata.TableVersion
+                    Date     = $metadata.ReleaseDate
+                }
+                # Write-Host  "Match: $parentFolderName\$AnsiBoldGreen$($table.BaseName).vpx$AnsiResetAll"
+                # Write-Host ("  Name: {0}`n  Author: {1}`n  Version: {2}`n  Date: {3}" `
+                #         -f $metadata.TableName, $metadata.AuthorName, $metadata.TableVersion, $metadata.ReleaseDate)
+                # Write-Host ''
             }
         }
         else {
@@ -130,8 +140,8 @@ foreach ($table in $tables) {
 }
 
 if ($ShowValid) {
-    'Required Roms:'
-    "'" + (($requiredRoms | Sort-Object -Unique) -join "', '") + "'"
+    Write-Host 'Required Roms:'
+    Write-Host ("'" + (($requiredRoms | Sort-Object -Unique) -join "', '") + "'")
 }
 
-"Valid tables: $validTableCount / $($tables.Count)"
+Write-Host ("Valid tables: $validTableCount / $($tables.Count)")
