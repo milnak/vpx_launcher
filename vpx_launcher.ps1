@@ -8,7 +8,7 @@ Param(
     [int]$Display = -1
 )
 
-$script:launcherVersion = '1.7'
+$script:launcherVersion = '1.7.1'
 
 $script:colorScheme = @{
     # "Ubuntu Custom"
@@ -183,7 +183,7 @@ function Invoke-MainWindow {
 
     $panelListView = New-Object -TypeName 'Windows.Forms.Panel'
     $panelListView.Dock = [Windows.Forms.DockStyle]::Top
-    $panelListView.Height = 450
+    $panelListView.Height = 439
     # $panelListView.Width = 500
 
     $listView = New-Object -TypeName 'Windows.Forms.ListView'
@@ -319,7 +319,6 @@ function Invoke-MainWindow {
 
     $panelStatus = New-Object -TypeName 'Windows.Forms.Panel'
     $panelStatus.Dock = [Windows.Forms.DockStyle]::Bottom
-    $panelStatus.Height = 111
     $panelStatus.BackColor = $script:colorScheme.PanelStatus_BackColor
     $panelStatus.ForeColor = $script:colorScheme.PanelStatus_ForeColor
 
@@ -332,7 +331,7 @@ function Invoke-MainWindow {
     $label1.Left = 5
     $label1.Top = 4
     $label1.Width = 440
-    $label1.Height = 30
+    # $label1.Height = 20
     $label1.AutoSize = $false
     $label1.AutoEllipsis = $true
     $panelStatus.Controls.Add($label1)
@@ -379,6 +378,7 @@ function Invoke-MainWindow {
             $tablePath = $listView.SelectedItems.Tag
 
             Invoke-Game -LaunchButton $buttonLaunch -PinballExe $PinballExe -TablePath $tablePath
+            $progressBar.Value = 0
 
             # $form.DialogResult = [Windows.Forms.DialogResult]::OK
             # $form.Close() | Out-Null
