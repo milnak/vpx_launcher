@@ -8,7 +8,7 @@ Param(
     [int]$Display = -1
 )
 
-$script:launcherVersion = '1.6'
+$script:launcherVersion = '1.7'
 
 $script:colorScheme = @{
     # "Ubuntu Custom"
@@ -94,9 +94,11 @@ function Invoke-Game {
     Remove-Item "$tableFolder/altsound.log" -ErrorAction SilentlyContinue
 
     if (Test-Path "$tableFolder/crash.dmp" -PathType Leaf ) {
-        Write-Host -ForegroundColor Red "Table '$baseName' crashed!"
         Remove-Item "$tableFolder/crash.dmp" -ErrorAction SilentlyContinue
         Remove-Item "$tableFolder/crash.txt" -ErrorAction SilentlyContinue
+        # Write-Host -ForegroundColor Red "Table '$baseName' crashed!"
+        [Windows.MessageBox]::Show("Table '$baseName' crashed!", 'Warning', 'OK', 'Error') | Out-Null
+
     }
 
     Write-Verbose ('VPX (filename: {0}) exited' -f $filename)
@@ -173,6 +175,7 @@ function Invoke-MainWindow {
     }
 
     Add-Type -AssemblyName 'System.Windows.Forms'
+    Add-Type -AssemblyName 'PresentationFramework' # MessageBox
 
     $form = New-Object -TypeName 'Windows.Forms.Form'
 
@@ -320,9 +323,12 @@ function Invoke-MainWindow {
     $panelStatus.BackColor = $script:colorScheme.PanelStatus_BackColor
     $panelStatus.ForeColor = $script:colorScheme.PanelStatus_ForeColor
 
+    # TODO: Use LinkLabel to link to IPDB. page using puplookup.csv
+    # File can be exported from https://virtualpinballspreadsheet.github.io/export
     $label1 = New-Object -TypeName 'Windows.Forms.Label'
+    # $label1.LinkColor = $script:colorScheme.PanelStatus_ForeColor
     $label1.Text = ''
-    $label1.Font = New-Object  System.Drawing.Font('Segoe UI', 16, [Drawing.FontStyle]::Bold)
+    $label1.Font = New-Object  System.Drawing.Font('Segoe UI', 14, [Drawing.FontStyle]::Bold)
     $label1.Left = 5
     $label1.Top = 4
     $label1.Width = 440
@@ -380,10 +386,17 @@ function Invoke-MainWindow {
         }
     )
 
+    $statusStrip = New-Object -TypeName 'Windows.Forms.StatusStrip'
+    $statusLabel = New-Object -TypeName 'Windows.Forms.ToolStripStatusLabel'
+    $statusLabel.Text = 'F5: Refresh List | Double-Click Table to Launch | Ctrl-C: Copy Table Info'
+    $statusLabel.Spring = $true  # Makes it expand to fill space
+    $statusStrip.Items.Add($statusLabel) | Out-Null
+
     ### FORM MAIN
 
     $form.Controls.Add($panelStatus)
     $form.Controls.Add($panelListView)
+    $form.Controls.Add($statusStrip)
 
     $form.Add_Activated({ $listView.Select() })
 
@@ -413,7 +426,6 @@ function Read-HistoryDat {
     $readingBio = $false
     [string[]]$bio = $null
 
-    # History.DAT file is optional.
     foreach ($line in (Get-Content -ErrorAction SilentlyContinue -LiteralPath $DatabasePath)) {
         if ($line.Length -ge 6 -and $line.Substring(0, 6) -eq '$info=') {
             $roms = $line.Substring(6).TrimEnd(',') -split ','
@@ -541,6 +553,7 @@ if (Test-Path -LiteralPath $cfgPath -PathType Leaf) {
 }
 
 # TODO: Display VPinMAME ROM history in a text window.
+# File is typically placed in "Visual Pinball\VPinMAME\history.dat"
 # $vpmRegistry = Get-ItemProperty -ErrorAction SilentlyContinue -LiteralPath 'HKCU:\Software\Freeware\Visual PinMame\globals'
 # $historyDat = $vpmRegistry.history_file
 # $history = Read-HistoryDat -DatabasePath $historyDat
