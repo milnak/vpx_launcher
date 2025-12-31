@@ -25,9 +25,9 @@ $AnsiBoldWhite = "`e[1;37m"
 $AnsiResetAll = "`e[0m"
 
 if (-not (Test-Path $PupLookupCsvFilePath)) {
-    Write-Error "PUP lookup CSV file not found: $PupLookupCsvFilePath"
+    Write-Warning "PUP lookup CSV file not found: $PupLookupCsvFilePath"
     Write-Output 'Go to  https://virtualpinballspreadsheet.github.io/export'
-    Write-Output 'Click 'Export CSV' and save 'puplookup.csv' to this folder.'
+    Write-Output 'Click "Export CSV" and save "puplookup.csv" to this folder.'
     exit 1
 }
 $puplookup = Get-Content $PupLookupCsvFilePath | ConvertFrom-Csv
