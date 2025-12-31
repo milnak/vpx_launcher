@@ -8,7 +8,7 @@ Param(
     [int]$Display = -1
 )
 
-$script:launcherVersion = '1.7.3'
+$script:launcherVersion = '1.7.4'
 
 $script:colorScheme = @{
     # "Ubuntu Custom"
@@ -1416,6 +1416,92 @@ function Invoke-ListRefresh {
 }
 
 # =============================================================================
+# Invoke-HelpForm
+
+function Invoke-HelpForm {
+    $helpForm = New-Object -TypeName 'Windows.Forms.Form'
+    $helpForm.Text = 'Keyboard Mappings'
+    $helpForm.Size = New-Object -TypeName 'Drawing.Size' -ArgumentList @(350, 500)
+    $helpForm.StartPosition = 'CenterScreen'
+
+    $textBox = New-Object -TypeName 'Windows.Forms.TextBox'
+    $textBox.Dock = [System.Windows.Forms.DockStyle]::Fill
+    $textBox.Font = New-Object -TypeName 'Drawing.Font' -ArgumentList @('Consolas', 10, [Drawing.FontStyle]::Regular)
+    $textBox.Multiline = $true
+    $textBox.ReadOnly = $true
+    $textBox.ScrollBars = 'Vertical'
+    $textBox.Text = @"
+Visual Pinball
+--------------
+Left Shift	Left Flipper
+Right Shift	Right Flipper
+Left Ctrl	Left Magna Save
+?	Right Magna Save
+Enter	Launch Ball
+1	Start Button
+5	Insert Coin 1
+4	Insert Coin 2
+Q	Exit Game
+T	Mechanical Tilt
+Z	Nudge from Left
+/	Nudge from Right
+Space	Nudge forward
+
+Visual PinMAME
+--------------
+F1	Game options...
+F2	Keyboard settings...
+F3	Reset emulation
+F4	Toggle Display lock
+F5	Toggle Display size
+F6	Show DIP Switch / Option Menu
+B	Add / Remove Ball From Table
+T	Bang Back
+
+Sega/Stern Whitestar keys:
+3	Insert Coin #1
+4	Insert Coin #2
+5	Insert Coin #3
+7	Black
+8	Green
+9	Red
+Home	Slam Tilt
+
+Volume Control
+--------------
+End: Open/close the coin door.
+7, 8, 9, 0: Adjust the ROM volume.
+^: Enter the menu system.
+~: Exit the menu system.
+7: Enter the menu system.
+Shift: Adjust the volume percentage.
+Arrow keys: Adjust the volume.
+F3: Restart the table to show DMD.
+Alt-tab: Switch to the DMD.
+~: Close the DMD.
+"@
+
+    $textBox.Add_KeyDown({
+            param($source, $e)
+            if ($_.KeyCode -eq [Windows.Forms.Keys]::Escape) {
+                $source.Parent.Close()
+            }
+        })
+
+    $helpForm.Controls.Add($textBox)
+
+    $OKButton = New-Object -TypeName 'Windows.Forms.Button'
+    $OKButton.Location = New-Object -TypeName 'Drawing.Point' -ArgumentList @(75, 120)
+    $OKButton.Size = New-Object -TypeName 'Drawing.Size' -ArgumentList @(75, 23)
+    $OKButton.Text = 'OK'
+    $OKButton.DialogResult = [Windows.Forms.DialogResult]::OK
+    $helpForm.AcceptButton = $OKButton
+    $helpForm.Controls.Add($OKButton)
+
+    $helpForm.ShowDialog() | Out-Null
+}
+
+# =============================================================================
 # Invoke-MainWindow
 
 function Invoke-MainWindow {
@@ -1440,7 +1526,6 @@ function Invoke-MainWindow {
     $panelListView = New-Object -TypeName 'Windows.Forms.Panel'
     $panelListView.Dock = [Windows.Forms.DockStyle]::Top
     $panelListView.Height = 439
-    # $panelListView.Width = 500
 
     $listView = New-Object -TypeName 'Windows.Forms.ListView'
     $listView.Dock = [Windows.Forms.DockStyle]::Fill
@@ -1452,8 +1537,7 @@ function Invoke-MainWindow {
     $listView.BackColor = $script:colorScheme.ListView_BackColor
     $listView.ForeColor = $script:colorScheme.ListView_ForeColor
 
-
-    $listView.Columns.Add('Table', 200) | Out-Null
+    $listView.Columns.Add('Title', 200) | Out-Null
     $listView.Columns.Add('Manufact.', 130) | Out-Null
     $listView.Columns.Add('Year', 53) | Out-Null
     $listView.Columns.Add('Details', 130) | Out-Null
@@ -1551,13 +1635,16 @@ function Invoke-MainWindow {
                 $_.Handled = $true
             }
             elseif ($_.KeyCode -eq 'F1') {
+                Invoke-HelpForm
+            }
+            elseif ($_.KeyCode -eq 'F2') {
                 # e..g "24 (Stern 2009)"
                 $name = '{0} ({1} {2})' -f `
                     $listView.SelectedItems.Text, `
                     $listView.SelectedItems.SubItems[1].Text, `
                     $listView.SelectedItems.SubItems[2].Text
                 if ($script:puplookup.ContainsKey($name)) {
-                    Write-Verbose "F1 pressed. Showing help for '$name'"
+                    Write-Verbose "F2 pressed. Showing help for '$name'"
                     Start-Process -FilePath $script:puplookup[$name]
                 }
                 else {
@@ -1572,12 +1659,13 @@ function Invoke-MainWindow {
 
                 # TODO: Create global defines for column names / indices
                 #   text = table, 1 = manuf, 2 = year, 3 = details, 4 = play
-                '{0} ({1} {2}) {3}' -f `
-                    $listView.SelectedItems.Text, `
-                    $listView.SelectedItems.SubItems[1].Text, `
-                    $listView.SelectedItems.SubItems[2].Text, `
-                    $listView.SelectedItems.SubItems[3].Text `
-                | Set-Clipboard
+                [PSCustomObject]@{
+                    Title        = $listView.SelectedItems.Text
+                    Manufacturer = $listView.SelectedItems.SubItems[1].Text
+                    Year         = $listView.SelectedItems.SubItems[2].Text
+                    Details      = $listView.SelectedItems.SubItems[3].Text
+                    PlayCount    = $listView.SelectedItems.SubItems[4].Text
+                } | ConvertTo-Json | Set-Clipboard
 
                 $_.Handled = $true
             }
@@ -1655,7 +1743,7 @@ function Invoke-MainWindow {
 
     $statusStrip = New-Object -TypeName 'Windows.Forms.StatusStrip'
     $statusLabel = New-Object -TypeName 'Windows.Forms.ToolStripStatusLabel'
-    $statusLabel.Text = 'F1: Open IPDB | F5: Refresh List | Ctrl-C: Copy Table Info'
+    $statusLabel.Text = 'F1: Keyboard help | F2: IPDB | F5: Refresh | Ctrl-C: Copy Info'
     $statusLabel.Spring = $true  # Makes it expand to fill space
     $statusStrip.Items.Add($statusLabel) | Out-Null
 
