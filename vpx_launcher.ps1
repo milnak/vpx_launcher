@@ -8,7 +8,7 @@ Param(
     [int]$Display = -1
 )
 
-$script:launcherVersion = '1.7.7'
+$script:launcherVersion = '1.7.8'
 
 $script:colorScheme = @{
     # "CGA" Color Scheme
@@ -3278,15 +3278,17 @@ function Invoke-Game {
     # Games take a while to load, so show a fake progress bar.
     for ($i = 0; $i -le $progressBar.Maximum - $progressBar.Minimum; $i++) {
         $progressBar.Value = $i
-        Start-Sleep -Milliseconds 500
-        if ($win32::FindWindow('VPinball', 'Visual Pinball') -ne 0) {
+        Start-Sleep -Milliseconds 50
+        if (Get-IsVisualPinballRunning) {
             # Visual Pinball exited immediately. maybe a game crashed or it started quickly.
+            $progressBar.Value = $progressBar.Maximum
             break
         }
     }
 
     Write-Verbose 'Waiting for VPX to exit'
     $proc.WaitForExit()
+    Write-Verbose 'VPX exited'
 
     $progressBar.Value = 0
 
@@ -3311,7 +3313,6 @@ function Invoke-Game {
 
     }
 
-    Write-Verbose ('VPX (filename: {0}) exited' -f $filename)
 }
 
 # =============================================================================
@@ -3677,7 +3678,7 @@ function Invoke-MainWindow {
     $progressBar.Width = 561
     $progressBar.Height = 20
     $progressBar.Minimum = 0
-    $progressBar.Maximum = 9
+    $progressBar.Maximum = 100
     $progressBar.Value = 0
     $progressBar.BackColor = $script:colorScheme.ProgressBar_BackColor
     $progressBar.ForeColor = $script:colorScheme.ProgressBar_ForeColor
@@ -3703,7 +3704,6 @@ function Invoke-MainWindow {
             $tablePath = $listView.SelectedItems.Tag
 
             Invoke-Game -LaunchButton $buttonLaunch -PinballExe $PinballExe -TablePath $tablePath
-            $progressBar.Value = 0
 
             # $form.DialogResult = [Windows.Forms.DialogResult]::OK
             # $form.Close() | Out-Null
@@ -3833,27 +3833,32 @@ function Read-VpxFileMetadata {
     $data.GetEnumerator() | Sort-Object Table
 }
 
+# =============================================================================
+
+Add-Type @'
+ using System;
+ using System.Runtime.InteropServices;
+
+ public class Win32 {
+     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+     public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+ }
+'@
+
+function Get-IsVisualPinballRunning {
+    [bool]([win32]::FindWindow('VPPlayer', 'Visual Pinball Player') -ne [IntPtr]::Zero)
+}
+
 #  __  __      _
 # |  \/  |__ _(_)_ _
 # | |\/| / _` | | ' \
 # |_|  |_\__,_|_|_||_|
 #
 
-$win32 = Add-Type -Namespace Win32  -MemberDefinition @'
-    [DllImport("user32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
-    public static extern IntPtr FindWindow(string className, string windowName);
-
-    [DllImport("kernel32.dll")]
-    public static extern uint GetLastError();
-'@ -Name 'Funcs' -PassThru
-
-
-# Note: can't just search for class name. Window title must be specified.
-if ($win32::FindWindow('VPinball', 'Visual Pinball') -ne 0) {
-    Write-Warning 'Visual Pinball should be closed before running this launcher.'
+if (Get-IsVisualPinballRunning) {
+    Write-Warning 'Visual Pinball process is already running. Please close it before running this launcher.'
     return
 }
-
 
 # Verify paths.
 Get-Item -ErrorAction Stop -LiteralPath $PinballExe | Out-Null
