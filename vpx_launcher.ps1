@@ -3376,7 +3376,7 @@ function Invoke-ListRefresh {
 function Invoke-HelpForm {
     $helpForm = New-Object -TypeName 'Windows.Forms.Form'
     $helpForm.Text = 'Keyboard Mappings'
-    $helpForm.Size = New-Object -TypeName 'Drawing.Size' -ArgumentList @(350, 500)
+    $helpForm.Size = New-Object -TypeName 'Drawing.Size' -ArgumentList @(375, 500)
     $helpForm.StartPosition = 'CenterScreen'
 
     $textBox = New-Object -TypeName 'Windows.Forms.TextBox'
@@ -3391,49 +3391,50 @@ Visual Pinball
 Left Shift	Left Flipper
 Right Shift	Right Flipper
 Left Ctrl	Left Magna Save
-?	Right Magna Save
-Enter	Launch Ball
-1	Start Button
-5	Insert Coin 1
-4	Insert Coin 2
-Q	Exit Game
-T	Mechanical Tilt
-Z	Nudge from Left
-/	Nudge from Right
-Space	Nudge forward
+Right Ctrl	Right Magna Save
+Enter	        Launch Ball
+1	        Start Button
+5	        Insert Coin 1
+4	        Insert Coin 2
+Q	        Exit Game
+T	        Mechanical Tilt
+Z	        Nudge from Left
+/	        Nudge from Right
+Space	        Nudge forward
 
 Visual PinMAME
 --------------
-F1	Game options...
-F2	Keyboard settings...
-F3	Reset emulation
-F4	Toggle Display lock
-F5	Toggle Display size
-F6	Show DIP Switch / Option Menu
-B	Add / Remove Ball From Table
-T	Bang Back
+F1	        Game options...
+F2	        Keyboard settings...
+F3	        Reset emulation
+F4	        Toggle Display lock
+F5	        Toggle Display size
+F6	        Show DIP Switch / Option Menu
+B	        Add / Remove Ball From Table
+T	        Bang Back
 
-Sega/Stern Whitestar keys:
-3	Insert Coin #1
-4	Insert Coin #2
-5	Insert Coin #3
-7	Black
-8	Green
-9	Red
-Home	Slam Tilt
+Sega/Stern Whitestar
+--------------------
+3	        Insert Coin #1
+4	        Insert Coin #2
+5	        Insert Coin #3
+7	        Black
+8	        Green
+9	        Red
+Home	        Slam Tilt
 
 Volume Control
 --------------
-End: Open/close the coin door.
-7, 8, 9, 0: Adjust the ROM volume.
-^: Enter the menu system.
-~: Exit the menu system.
-7: Enter the menu system.
-Shift: Adjust the volume percentage.
-Arrow keys: Adjust the volume.
-F3: Restart the table to show DMD.
-Alt-tab: Switch to the DMD.
-~: Close the DMD.
+End         Open/close the coin door
+7, 8, 9, 0  Adjust the ROM volume
+^           Enter the menu system
+~           Exit the menu system
+7           Enter the menu system
+Shift       Adjust the volume percentage
+Arrow keys  Adjust the volume
+F3          Restart the table to show DMD
+Alt-tab     Switch to the DMD
+~           Close the DMD
 "@
 
     $textBox.Add_KeyDown({
@@ -3452,6 +3453,11 @@ Alt-tab: Switch to the DMD.
     $OKButton.DialogResult = [Windows.Forms.DialogResult]::OK
     $helpForm.AcceptButton = $OKButton
     $helpForm.Controls.Add($OKButton)
+
+    $helpForm.Add_Shown({
+            $textBox.SelectionStart = 0
+            $textBox.SelectionLength = 0
+        })
 
     $helpForm.ShowDialog() | Out-Null
 }
