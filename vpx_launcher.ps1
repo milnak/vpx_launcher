@@ -8,7 +8,7 @@ Param(
     [int]$Display = -1
 )
 
-$script:launcherVersion = '1.7.8'
+$script:launcherVersion = '1.7.9'
 
 $script:colorScheme = @{
     # "CGA" Color Scheme
@@ -3515,22 +3515,21 @@ function Invoke-MainWindow {
                         $listView.SelectedItems.SubItems[$script:colManufacturer].Text, `
                         $listView.SelectedItems.SubItems[$script:colYear].Text
 
-                    $details = ''
+                    $details = @()
                     $rating = [double]0.0
                     if ($script:ipdbRatings.ContainsKey($pupkey)) {
                         $rating = $script:ipdbRatings[$pupkey]
-                        $details += "$rating/10; "
+                        $details += "$rating/10"
                     }
 
                     if ($script:puplookup.ContainsKey($pupkey)) {
                         $numPlayers = $script:puplookup[$pupkey].Players
                         if ($numPlayers -ne 0) {
-                            $details += " $numPlayers player(s); "
+                            $details += "$numPlayers player(s)"
                         }
 
-                        $details += ' {0}; {1}' -f `
-                            $script:puplookup[$pupkey].Type, `
-                            $script:puplookup[$pupkey].Theme
+                        $details += $script:puplookup[$pupkey].Type
+                        $details += $script:puplookup[$pupkey].Theme
                     }
                     else {
                         $details = $listView.SelectedItems.SubItems[$script:colDetails].Text
@@ -3538,7 +3537,7 @@ function Invoke-MainWindow {
 
                     $tableMeta = @{
                         Name    = $pupkey
-                        Details = $details
+                        Details = $details -join '; '
                     }
 
                     $script:metadataCache[$filename] = $tableMeta
