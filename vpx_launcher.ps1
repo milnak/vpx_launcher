@@ -14,6 +14,7 @@ $script:colorScheme = @{
     # "CGA" Color Scheme
     ListView_BackColor     = [Drawing.Color]::FromArgb(0, 0, 0) # Black
     ListView_ForeColor     = [Drawing.Color]::FromArgb(255, 255, 255) # White
+    ListView_ForeColorAlt  = [Drawing.Color]::FromArgb(85, 255, 85) # Light Green
     PanelStatus_BackColor  = [Drawing.Color]::FromArgb(0, 0, 170) # Dark Blue
     PanelStatus_ForeColor  = [Drawing.Color]::FromArgb(255, 255, 85) # Light Yellow
     ProgressBar_BackColor  = [Drawing.Color]::FromArgb(85, 85, 85) # Dark Gray
@@ -5567,13 +5568,8 @@ function Write-IncrementedLaunchCount {
     $count
 }
 
-#######################################################################################################################
-
-#  ___             _            ___
-# |_ _|_ ___ _____| |_____ ___ / __|__ _ _ __  ___
-#  | || ' \ V / _ \ / / -_)___| (_ / _` | '  \/ -_)
-# |___|_||_\_/\___/_\_\___|    \___\__,_|_|_|_\___|
-#
+# =============================================================================
+# Invoke-Game
 
 function Invoke-Game {
     Param(
@@ -5670,10 +5666,7 @@ function Invoke-ListRefresh {
 
         # style entries marked as favorites: bold font and bright white text
         $pupKey = Get-PupKey -ListView $ListView -Index ($ListView.Items.Count - 1)
-        if ($script:favorites -contains $pupKey) {
-            $listItem.ForeColor = [Drawing.Color]::Yellow
-            $listItem.Font = New-Object Drawing.Font($listItem.Font, [Drawing.FontStyle]::Bold)
-        }
+        Set-ListItemStyle -ListView $ListView -Index ($ListView.Items.Count - 1) -IsFavorite ($script:favorites -contains $pupKey)
     }
 
     $index = 0
@@ -5696,34 +5689,6 @@ function Invoke-ListRefresh {
 # =============================================================================
 # Invoke-HelpForm
 
-
-<#
-.SYNOPSIS
-Generates a descriptive lookup key for a listview item.
-
-.DESCRIPTION
-Get-PupKey returns a string representing the selected item or the item
-at the specified index in the provided ListView. The format is:
-"Title (Manufacturer Year)". Invalid selections or out-of-range indexes
-cause the function to return $null.
-
-.PARAMETER ListView
-The ListView control containing game entries. This parameter is required.
-
-.PARAMETER Index
-Optional zero-based index of the item to use. If omitted or -1, the
-currently selected item is used.
-
-.EXAMPLE
-Get-PupKey -ListView $listView
-
-Generates a key for the current selection.
-
-.EXAMPLE
-Get-PupKey -ListView $listView -Index 5
-
-Generates a key for the sixth item in the list.
-#>
 function Get-PupKey {
     param(
         [Parameter(Mandatory)][object]$ListView,
@@ -5753,6 +5718,46 @@ function Get-PupKey {
         $ListView.Items[$Index].SubItems[$script:colYear].Text
 }
 
+# =============================================================================
+# Set-ListItemStyle
+
+function Set-ListItemStyle {
+    param(
+        [Parameter(Mandatory)][object]$ListView,
+        [int]$Index = -1,
+        [bool]$IsFavorite = $false
+    )
+
+    if ($Index -eq -1) {
+        # Use Selected Item
+        if ($ListView.SelectedItems.Count -ne 1) {
+            return
+        }
+
+        $item = $ListView.SelectedItems[0]
+    }
+    else {
+        # Use Item at Index
+        if ($Index -ge $ListView.Items.Count) {
+            return
+        }
+
+        $item = $ListView.Items[$Index]
+    }
+
+    if ($IsFavorite) {
+        $item.ForeColor = $script:colorScheme.ListView_ForeColorAlt
+        $item.Font = New-Object Drawing.Font($item.Font, [Drawing.FontStyle]::Bold)
+    }
+    else {
+        $item.ForeColor = $script:colorScheme.ListView_ForeColor
+        $item.Font = New-Object Drawing.Font($item.Font, [Drawing.FontStyle]::Regular)
+    }
+}
+
+
+# =============================================================================
+# Invoke-HelpForm
 
 function Invoke-HelpForm {
     $helpForm = New-Object -TypeName 'Windows.Forms.Form'
@@ -6015,17 +6020,18 @@ function Invoke-MainWindow {
     $listView.Add_KeyUp({
             if ($_.Control -and $_.KeyCode -eq 'F') {
                 # toggle favorite status for the selected item
+
                 $pupkey = Get-PupKey -ListView $listView
                 if ($script:favorites -contains $pupkey) {
-                    Write-Verbose "Removing favorite [$pupkey]"
+                    Write-Verbose "Ctrl-F pressed. Removing favorite [$pupkey]"
                     $script:favorites = $script:favorites | Where-Object { $_ -ne $pupkey }
+                    Set-ListItemStyle -ListView $listView -IsFavorite $false
                 }
                 else {
-                    Write-Verbose "Adding favorite [$pupkey]"
+                    Write-Verbose "Ctrl-F pressed. Adding favorite [$pupkey]"
                     $script:favorites += $pupkey
+                    Set-ListItemStyle -ListView $listView -IsFavorite $true
                 }
-
-                # TODO: Change font color and style of the item here.
 
                 $_.Handled = $true
             }
@@ -6284,7 +6290,7 @@ if (Test-Path -LiteralPath $cfgPath -PathType Leaf) {
     # load favorites array if present
     if ($cfg.PSObject.Properties.Name -contains 'Favorites') {
         # ensure we have an array of strings
-        $script:favorites = @($cfg.Favorites)
+        $script:favorites = $cfg.Favorites
     }
 }
 
