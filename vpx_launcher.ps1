@@ -8,7 +8,7 @@ Param(
     [int]$Display = -1
 )
 
-$script:launcherVersion = '1.8'
+$script:launcherVersion = '1.9'
 
 $script:colorScheme = @{
     # "CGA" Color Scheme
@@ -33,6 +33,8 @@ $script:colPlayCount = 4
 
 $script:metadataCache = @{}
 $script:launchCount = @{}
+# list of favorite table names (string array)
+$script:favorites = @()
 
 # =============================================================================
 # Table metadata
@@ -5633,15 +5635,15 @@ function Invoke-Game {
 function Invoke-ListRefresh {
     param(
         [Parameter(Mandatory)][string]$TablePath,
-        [Parameter(Mandatory)][object]$listView
+        [Parameter(Mandatory)][object]$ListView
     )
 
     $selectedItemText = $null
-    if ($listView.SelectedItems.Count -eq 1) {
-        $selectedItemText = $listView.SelectedItems.Text
+    if ($ListView.SelectedItems.Count -eq 1) {
+        $selectedItemText = $ListView.SelectedItems.Text
     }
 
-    $listView.Items.Clear()
+    $ListView.Items.Clear()
 
     # Read in Read-VpxFileMetadatadatabase
     $vpxFiles = (Get-ChildItem -Recurse -Depth 1 -File -LiteralPath $TablePath -Include '*.vpx').FullName
@@ -5663,28 +5665,94 @@ function Invoke-ListRefresh {
         if (!$launchCount) { $launchCount = '0' }
         $listItem.SubItems.Add($launchCount) | Out-Null # $script:colPlayCount
 
-        $listView.Items.Add($listItem) | Out-Null
+        # add the item
+        $ListView.Items.Add($listItem) | Out-Null
+
+        # style entries marked as favorites: bold font and bright white text
+        $pupKey = Get-PupKey -ListView $ListView -Index ($ListView.Items.Count - 1)
+        if ($script:favorites -contains $pupKey) {
+            $listItem.ForeColor = [Drawing.Color]::Yellow
+            $listItem.Font = New-Object Drawing.Font($listItem.Font, [Drawing.FontStyle]::Bold)
+        }
     }
 
     $index = 0
 
-    if ($listView.Items.Count -ne 0) {
+    if ($ListView.Items.Count -ne 0) {
         if ($selectedItemText) {
-            $found = $listView.FindItemWithText($selectedItemText)
+            $found = $ListView.FindItemWithText($selectedItemText)
             if ($found) {
                 $index = $found.Index
             }
         }
     }
 
-    $listView.SelectedItems.Clear()
-    $listView.Items[$index].Selected = $true
-    $listView.Items[$index].Focused = $true
-    $listView.Items[$index].EnsureVisible()
+    $ListView.SelectedItems.Clear()
+    $ListView.Items[$index].Selected = $true
+    $ListView.Items[$index].Focused = $true
+    $ListView.Items[$index].EnsureVisible()
 }
 
 # =============================================================================
 # Invoke-HelpForm
+
+
+<#
+.SYNOPSIS
+Generates a descriptive lookup key for a listview item.
+
+.DESCRIPTION
+Get-PupKey returns a string representing the selected item or the item
+at the specified index in the provided ListView. The format is:
+"Title (Manufacturer Year)". Invalid selections or out-of-range indexes
+cause the function to return $null.
+
+.PARAMETER ListView
+The ListView control containing game entries. This parameter is required.
+
+.PARAMETER Index
+Optional zero-based index of the item to use. If omitted or -1, the
+currently selected item is used.
+
+.EXAMPLE
+Get-PupKey -ListView $listView
+
+Generates a key for the current selection.
+
+.EXAMPLE
+Get-PupKey -ListView $listView -Index 5
+
+Generates a key for the sixth item in the list.
+#>
+function Get-PupKey {
+    param(
+        [Parameter(Mandatory)][object]$ListView,
+        [int]$Index = -1
+    )
+
+    if ($Index -eq -1) {
+        # Use Selected Item
+        if ($ListView.SelectedItems.Count -ne 1) {
+            return $null
+        }
+
+        return '{0} ({1} {2})' -f `
+            $ListView.SelectedItems.Text, `
+            $ListView.SelectedItems.SubItems[$script:colManufacturer].Text, `
+            $ListView.SelectedItems.SubItems[$script:colYear].Text
+    }
+
+    # Use Item at Index
+    if ($Index -ge $ListView.Items.Count) {
+        return $null
+    }
+
+    return '{0} ({1} {2})' -f `
+        $ListView.Items[$Index].Text, `
+        $ListView.Items[$Index].SubItems[$script:colManufacturer].Text, `
+        $ListView.Items[$Index].SubItems[$script:colYear].Text
+}
+
 
 function Invoke-HelpForm {
     $helpForm = New-Object -TypeName 'Windows.Forms.Form'
@@ -5829,10 +5897,7 @@ function Invoke-MainWindow {
                 # Uses cache to avoid multiple lookups in puplookup table.
                 $tableMeta = $script:metadataCache[$filename]
                 if (-not $tableMeta) {
-                    $pupkey = '{0} ({1} {2})' -f `
-                        $listView.SelectedItems.Text, `
-                        $listView.SelectedItems.SubItems[$script:colManufacturer].Text, `
-                        $listView.SelectedItems.SubItems[$script:colYear].Text
+                    $pupkey = Get-PupKey -ListView $listView
 
                     $details = @()
                     $rating = [double]0.0
@@ -5852,6 +5917,7 @@ function Invoke-MainWindow {
                         $details += $pupEntry.GameTheme
                     }
                     else {
+                        Write-Verbose "No puplookup entry found for [$pupkey]"
                         $details = $listView.SelectedItems.SubItems[$script:colDetails].Text
                     }
 
@@ -5920,7 +5986,7 @@ function Invoke-MainWindow {
             # $_ : Windows.Forms.KeyEventArgs
             if ($_.KeyCode -eq 'F5') {
                 Write-Verbose 'F5 pressed. Refreshing.'
-                Invoke-ListRefresh -TablePath $TablePath -listView $listView
+                Invoke-ListRefresh -TablePath $TablePath -ListView $listView
                 $_.Handled = $true
             }
             elseif ($_.KeyCode -eq 'F1') {
@@ -5929,10 +5995,7 @@ function Invoke-MainWindow {
             elseif ($_.KeyCode -eq 'F2') {
                 # Open IPDB page for selected table
                 # e.g. "24 (Stern 2009)"
-                $pupkey = '{0} ({1} {2})' -f `
-                    $listView.SelectedItems.Text, `
-                    $listView.SelectedItems.SubItems[$script:colManufacturer].Text, `
-                    $listView.SelectedItems.SubItems[$script:colYear].Text
+                $pupkey = Get-PupKey -ListView $listView
                 $pupEntry = $script:puplookup | Where-Object GameName -eq $pupkey
                 if ($pupEntry) {
                     Write-Verbose "F2 pressed. Showing help for [$pupkey]"
@@ -5950,7 +6013,23 @@ function Invoke-MainWindow {
         })
 
     $listView.Add_KeyUp({
-            if ($_.Control -and $_.KeyCode -eq 'C') {
+            if ($_.Control -and $_.KeyCode -eq 'F') {
+                # toggle favorite status for the selected item
+                $pupkey = Get-PupKey -ListView $listView
+                if ($script:favorites -contains $pupkey) {
+                    Write-Verbose "Removing favorite [$pupkey]"
+                    $script:favorites = $script:favorites | Where-Object { $_ -ne $pupkey }
+                }
+                else {
+                    Write-Verbose "Adding favorite [$pupkey]"
+                    $script:favorites += $pupkey
+                }
+
+                # TODO: Change font color and style of the item here.
+
+                $_.Handled = $true
+            }
+            elseif ($_.Control -and $_.KeyCode -eq 'C') {
                 Write-Verbose 'Ctrl-C pressed. Copying.'
 
                 # TODO: Create global defines for column names / indices
@@ -6038,7 +6117,7 @@ function Invoke-MainWindow {
 
     $statusStrip = New-Object -TypeName 'Windows.Forms.StatusStrip'
     $statusLabel = New-Object -TypeName 'Windows.Forms.ToolStripStatusLabel'
-    $statusLabel.Text = 'F1: Keyboard help | F2: IPDB | F5: Refresh | Ctrl-C: Copy Info'
+    $statusLabel.Text = 'F1: Keyboard help | F2: IPDB | F5: Refresh | Ctrl-C: Copy Info | Ctrl-F: Toggle Favorite'
     $statusLabel.Spring = $true  # Makes it expand to fill space
     $statusLabel.Font = New-Object System.Drawing.Font('Consolas', 8)
     $statusStrip.Items.Add($statusLabel) | Out-Null
@@ -6062,11 +6141,8 @@ function Invoke-MainWindow {
     $form.ShowDialog()
 }
 
-#  ___             _     _  _ _    _                ___       _
-# | _ \___ __ _ __| |___| || (_)__| |_ ___ _ _ _  _|   \ __ _| |_
-# |   / -_) _` / _` |___| __ | (_-<  _/ _ \ '_| || | |) / _` |  _|
-# |_|_\___\__,_\__,_|   |_||_|_/__/\__\___/_|  \_, |___/\__,_|\__|
-#                                              |__/
+# =============================================================================
+# Read-HistoryDat
 
 function Read-HistoryDat {
     param (
@@ -6205,6 +6281,11 @@ if (Test-Path -LiteralPath $cfgPath -PathType Leaf) {
     $cfg = Get-Content $cfgPath | ConvertFrom-Json
     # Convert JSON to hash
     foreach ($p in $cfg.LaunchCount.PSObject.Properties) { $script:launchCount[$p.Name] = $p.Value }
+    # load favorites array if present
+    if ($cfg.PSObject.Properties.Name -contains 'Favorites') {
+        # ensure we have an array of strings
+        $script:favorites = @($cfg.Favorites)
+    }
 }
 
 # TODO: Display VPinMAME ROM history in a text window.
@@ -6221,4 +6302,5 @@ Invoke-MainWindow -TablePath $TablePath | Out-Null
 Write-Verbose "Writing config to $cfgPath"
 @{
     LaunchCount = $script:launchCount
+    Favorites   = $script:favorites
 } | ConvertTo-Json | Out-File $cfgPath
