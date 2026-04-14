@@ -1,83 +1,93 @@
-﻿Param([string]$Path = '.')
+Param([string]$Path = '.')
 
-function Check-GithubUpdate {
+function Get-GithubUpdate {
     param (
         [Parameter(Mandatory)][string]$Path,
         [Parameter(Mandatory)][string]$Repo
     )
 
+    Write-Host -ForegroundColor Cyan "Checking $Repo for updates..."
+
     $vpxItem = Get-Item -LiteralPath $Path -ErrorAction SilentlyContinue
     if ($vpxItem) {
-        $localVersion = 'v{0}' -f $vpxItem.VersionInfo.ProductVersion
+        # e.g. "3.7.0.222.8133307"
+        $localVersion = $vpxItem.VersionInfo.ProductVersion # -replace '\.\d+$',''
     }
     else {
         $localVersion = '0.0.0.0'
     }
 
-    $json = (Invoke-WebRequest -Uri ('https://api.github.com/repos/{0}/releases' -f $Repo)).Content | ConvertFrom-Json
+    try {
+        # Note: /releases/latest doesn't include pre-release versions.
+        $json = (Invoke-WebRequest -Uri ('https://api.github.com/repos/{0}/releases' -f $Repo)).Content | ConvertFrom-Json
+    }
+    catch {
+        Write-Warning "Failed to check $Repo : $_"
+        return $null
+    }
 
-    $onlineVersion = @($json.tag_name)[0] -replace '-', '.'
+    #  e.g. "v10.8.0-2051-28dd6c3"
+    $onlineVersion = @($json.tag_name)[0] -replace '^v',''
 
     @{
         OnlineVersion = $onlineVersion
         LocalVersion  = $localVersion
         Path          = $Path
-        Assets        = $json.assets.browser_download_url | Where-Object { $_ -match $onlineVersion }
+        Assets        = $json.assets.browser_download_url
     }
+}
+
+function Show-UpdateResult {
+    param (
+        [Parameter(Mandatory)][string]$Label,
+        [Parameter(Mandatory)][hashtable]$Result,
+        [Parameter(Mandatory)][string]$ExtractPath,
+        [Parameter(Mandatory)][scriptblock]$AssetFilter
+    )
+
+    Write-Host -ForegroundColor Cyan "${Label}:"
+    'Local version:  {0} ({1})' -f $Result.LocalVersion, $Result.Path
+    'Online version: {0}' -f $Result.OnlineVersion
+
+    if ($Result.LocalVersion -lt $Result.OnlineVersion) {
+        Write-Host -ForegroundColor Yellow "$Label update available (Extract to '$ExtractPath'):"
+        $Result.Assets | Where-Object $AssetFilter
+    }
+    else {
+        Write-Host -ForegroundColor Green 'Latest version installed.'
+    }
+    ''
 }
 
 ### Visual Pinball X
 
-Write-Host -ForegroundColor Cyan 'Visual Pinball X:'
 $destination = Resolve-Path -LiteralPath $Path
-$result = Check-GithubUpdate -Path (Join-Path -Path $destination -ChildPath 'VPinballX64.exe') -Repo 'vpinball/vpinball'
-'Local version:  {0} ({1})' -f $result.LocalVersion, $result.Path
-'Online version: {0}' -f $result.OnlineVersion
-
-if ($result.LocalVersion -ne $result.OnlineVersion) {
-    Write-Host -ForegroundColor Yellow "VPX Update available (Extract to '$destination'):"
-    $result.Assets | Where-Object { $_ -like '*/VPinballX-*-windows-x64-Release.zip' -and $_ -notlike '*-dev-third-party-*' }
+$result = Get-GithubUpdate -Path (Join-Path -Path $destination -ChildPath 'VPinballX64.exe') -Repo 'vpinball/vpinball'
+if ($result) {
+    Show-UpdateResult -Label 'Visual Pinball X' -Result $result -ExtractPath $destination -AssetFilter {
+        $_ -like '*/VPinballX-*-windows-x64-Release.zip' -and $_ -notlike '*-dev-third-party-*'
+    }
 }
-else {
-    Write-Host -ForegroundColor Green 'Latest version installed.'
-}
-
-''
 
 ### Visual PinMAME
 
-mkdir 'VPinMAME' -ErrorAction SilentlyContinue
-mkdir 'VPinMAME/roms' -ErrorAction SilentlyContinue
+$vpinmame_path = Join-Path -Path $Path -ChildPath 'VPinMAME'
+New-Item -Path $vpinmame_path -ItemType Directory -ErrorAction SilentlyContinue | Out-Null
+New-Item -Path (Join-Path -Path $vpinmame_path -ChildPath 'roms') -ItemType Directory -ErrorAction SilentlyContinue | Out-Null
+$vpinmame_path = Resolve-Path -LiteralPath $vpinmame_path
 
-Write-Host -ForegroundColor Cyan 'Visual PinMAME:'
-$vpinmame_path = Resolve-Path -LiteralPath (Join-Path -Path $Path -ChildPath 'VPinMAME') -ErrorAction SilentlyContinue
-$destination = Join-Path -Path $vpinmame_path -ChildPath 'VPinMAME64.dll'
-$result = Check-GithubUpdate -Path $destination -Repo 'vpinball/pinmame'
-'Local version:  {0} ({1})' -f $result.LocalVersion, $result.Path
-'Online version: {0}' -f $result.OnlineVersion
-
-if ($result.LocalVersion -ne $result.OnlineVersion) {
-    Write-Host -ForegroundColor Yellow "VPM Update available (Extract to '$vpinmame_path'):"
-    $result.Assets | Where-Object { $_ -like '*/VPinMAME-sc-*-win-x64.*' }
+$result = Get-GithubUpdate -Path (Join-Path -Path $vpinmame_path -ChildPath 'VPinMAME64.dll') -Repo 'vpinball/pinmame'
+if ($result) {
+    Show-UpdateResult -Label 'Visual PinMAME' -Result $result -ExtractPath $vpinmame_path -AssetFilter {
+        $_ -like '*/VPinMAME-sc-*-win-x64.*'
+    }
 }
-else {
-    Write-Host -ForegroundColor Green 'Latest version installed.'
-}
-
-''
 
 ### dmd-extensions
 
-Write-Host -ForegroundColor Cyan 'dmd-extensions:'
-$destination = Join-Path -Path $vpinmame_path -ChildPath 'dmdext.exe'
-$result = Check-GithubUpdate -Path $destination -Repo 'freezy/dmd-extensions'
-'Local version:  {0} ({1})' -f $result.LocalVersion, $result.Path
-'Online version: {0}' -f $result.OnlineVersion
-
-if ($result.LocalVersion -ne $result.OnlineVersion) {
-    Write-Host -ForegroundColor Yellow "dmd-extensions Update available (Extract to '$vpinmame_path'):"
-    $result.Assets | Where-Object { $_ -like '*/dmdext-v*-x64.zip' }
-}
-else {
-    Write-Host -ForegroundColor Green 'Latest version installed.'
+$result = Get-GithubUpdate -Path (Join-Path -Path $vpinmame_path -ChildPath 'dmdext.exe') -Repo 'freezy/dmd-extensions'
+if ($result) {
+    Show-UpdateResult -Label 'dmd-extensions' -Result $result -ExtractPath $vpinmame_path -AssetFilter {
+        $_ -like '*/dmdext-v*-x64.zip'
+    }
 }
