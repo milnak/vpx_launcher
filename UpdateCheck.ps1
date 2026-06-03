@@ -6,7 +6,7 @@ function Get-GithubUpdate {
         [Parameter(Mandatory)][string]$Repo
     )
 
-    Write-Host -ForegroundColor Cyan "Checking $Repo for updates..."
+    Write-Host "Checking $Repo for updates..."
 
     $vpxItem = Get-Item -LiteralPath $Path -ErrorAction SilentlyContinue
     if ($vpxItem) {
@@ -64,9 +64,10 @@ function Show-UpdateResult {
 $destination = Resolve-Path -LiteralPath $Path
 $result = Get-GithubUpdate -Path (Join-Path -Path $destination -ChildPath 'VPinballX64.exe') -Repo 'vpinball/vpinball'
 if ($result) {
-    Show-UpdateResult -Label 'Visual Pinball X' -Result $result -ExtractPath $destination -AssetFilter {
-        $_ -like '*/VPinballX-*-windows-x64-Release.zip' -and $_ -notlike '*-dev-third-party-*'
-    }
+    Show-UpdateResult `
+        -Label 'Visual Pinball X' `
+        -Result $result -ExtractPath $destination `
+        -AssetFilter { $_ -like '*/VPinballX-*-windows-x64-Release.zip' -and $_ -notlike '*-dev-third-party-*' }
 }
 
 ### Visual PinMAME
@@ -78,16 +79,18 @@ $vpinmame_path = Resolve-Path -LiteralPath $vpinmame_path
 
 $result = Get-GithubUpdate -Path (Join-Path -Path $vpinmame_path -ChildPath 'VPinMAME64.dll') -Repo 'vpinball/pinmame'
 if ($result) {
-    Show-UpdateResult -Label 'Visual PinMAME' -Result $result -ExtractPath $vpinmame_path -AssetFilter {
-        $_ -like '*/VPinMAME-sc-*-win-x64.*'
-    }
+    Show-UpdateResult `
+        -Label 'Visual PinMAME' `
+        -Result $result -ExtractPath $vpinmame_path `
+        -AssetFilter { $_ -like '*/VPinMAME-sc-*-win-x64.*' }
 }
 
 ### dmd-extensions
 
 $result = Get-GithubUpdate -Path (Join-Path -Path $vpinmame_path -ChildPath 'dmdext.exe') -Repo 'freezy/dmd-extensions'
 if ($result) {
-    Show-UpdateResult -Label 'dmd-extensions' -Result $result -ExtractPath $vpinmame_path -AssetFilter {
-        $_ -like '*/dmdext-v*-x64.zip'
-    }
+    Show-UpdateResult `
+        -Label 'dmd-extensions' `
+        -Result $result -ExtractPath $vpinmame_path `
+        -AssetFilter { $_ -like '*/dmdext-v*-x64.zip' }
 }
