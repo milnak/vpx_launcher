@@ -8,7 +8,7 @@ Param(
     [int]$Display = -1
 )
 
-$script:launcherVersion = '1.9'
+$script:launcherVersion = '1.9.1'
 
 $script:colorScheme = @{
     # "CGA" Color Scheme
@@ -4856,18 +4856,18 @@ Zone Fury (Original 2023) Neo 1.3.0,Zone Fury (Original 2023),Original,2023,,EM,
 # Table ratings
 
 function Get-IpdbRatings {
-    Param([string]$Path = ".\puplookup.csv")
     '$script:ipdbRatings = @{'
-    foreach ($e in (Import-Csv $Path | Sort-Object -Unique GameName)) {
-        if ($entry.WebLinkUrl -ne '') {
-            Write-Progress -Activity 'Fetching Rating' -Status $entry.GameName
+    foreach ($e in ($script:puplookup | Sort-Object -Unique GameName)) {
+        if ($e.WebLinkUrl -ne '' -and $script:ipdbRatings[$e.GameName] -eq $null) {
+            Write-Verbose "Fetching rating for '$($e.GameName)' from '$($e.WebLinkUrl)'"
             $prev = $global:ProgressPreference
             try {
+                $result = $null
                 $global:ProgressPreference = 'SilentlyContinue'
-                $result = Invoke-WebRequest -Uri $entry.WebLinkURL
+                # $result = Invoke-WebRequest -Uri $e.WebLinkURL
             }
             catch {
-                Write-Warning "Exception: '($entry.WebLinkUrl)': $($_.Exception.Message)"
+                Write-Warning "Exception: '($e.WebLinkUrl)': $($_.Exception.Message)"
             }
             finally {
                 $global:ProgressPreference = $prev
@@ -6009,13 +6009,14 @@ function Invoke-MainWindow {
     $listView.add_SelectedIndexChanged({
             if ($listView.SelectedItems.Count -eq 1) {
                 $filename = $listView.SelectedItems.Tag
+                $pupkey = Get-PupKey -ListView $listView
+                $pupEntry = $script:puplookup | Where-Object GameName -eq $pupkey
+                $statusLabelIpdb.Enabled = ($null -ne $pupEntry -and -not [string]::IsNullOrWhiteSpace($pupEntry.WebLinkURL))
 
                 # Update metadata.
                 # Uses cache to avoid multiple lookups in puplookup table.
                 $tableMeta = $script:metadataCache[$filename]
                 if (-not $tableMeta) {
-                    $pupkey = Get-PupKey -ListView $listView
-
                     $details = @()
                     $rating = [double]0.0
                     if ($script:ipdbRatings.ContainsKey($pupkey)) {
@@ -6023,7 +6024,6 @@ function Invoke-MainWindow {
                         $details += "$rating/10"
                     }
 
-                    $pupEntry = $script:puplookup | Where-Object GameName -eq $pupkey
                     if ($pupEntry) {
                         $numPlayers = $pupEntry.NumPlayers
                         if ($numPlayers -ne 0) {
@@ -6234,11 +6234,31 @@ function Invoke-MainWindow {
     )
 
     $statusStrip = New-Object -TypeName 'Windows.Forms.StatusStrip'
-    $statusLabel = New-Object -TypeName 'Windows.Forms.ToolStripStatusLabel'
-    $statusLabel.Text = 'F1: Keyboard help | F2: IPDB | F5: Refresh | Ctrl-C: Copy Info | Ctrl-F: Toggle Favorite'
-    $statusLabel.Spring = $true  # Makes it expand to fill space
-    $statusLabel.Font = New-Object System.Drawing.Font('Consolas', 8)
-    $statusStrip.Items.Add($statusLabel) | Out-Null
+    $statusLabelHelp = New-Object -TypeName 'Windows.Forms.ToolStripStatusLabel' -Property @{ Text = 'F1: Keyboard help'; Font = New-Object System.Drawing.Font('Consolas', 8) }
+    $statusLabelSep1 = New-Object -TypeName 'Windows.Forms.ToolStripStatusLabel' -Property @{ Text = '|'; Font = New-Object System.Drawing.Font('Consolas', 8) }
+    $statusLabelIpdb = New-Object -TypeName 'Windows.Forms.ToolStripStatusLabel' -Property @{ Text = 'F2: IPDB'; Font = New-Object System.Drawing.Font('Consolas', 8); Enabled = $false }
+    $statusLabelSep2 = New-Object -TypeName 'Windows.Forms.ToolStripStatusLabel' -Property @{ Text = '|'; Font = New-Object System.Drawing.Font('Consolas', 8) }
+    $statusLabelRefresh = New-Object -TypeName 'Windows.Forms.ToolStripStatusLabel' -Property @{ Text = 'F5: Refresh'; Font = New-Object System.Drawing.Font('Consolas', 8) }
+    $statusLabelSep3 = New-Object -TypeName 'Windows.Forms.ToolStripStatusLabel' -Property @{ Text = '|'; Font = New-Object System.Drawing.Font('Consolas', 8) }
+    $statusLabelCopy = New-Object -TypeName 'Windows.Forms.ToolStripStatusLabel' -Property @{ Text = 'Ctrl-C: Copy Info'; Font = New-Object System.Drawing.Font('Consolas', 8) }
+    $statusLabelSep4 = New-Object -TypeName 'Windows.Forms.ToolStripStatusLabel' -Property @{ Text = '|'; Font = New-Object System.Drawing.Font('Consolas', 8) }
+    $statusLabelFavorite = New-Object -TypeName 'Windows.Forms.ToolStripStatusLabel' -Property @{ Text = 'Ctrl-F: Toggle Favorite'; Font = New-Object System.Drawing.Font('Consolas', 8); Spring = $true }
+
+    $statusLabels = @(
+        $statusLabelHelp,
+        $statusLabelSep1,
+        $statusLabelIpdb,
+        $statusLabelSep2,
+        $statusLabelRefresh,
+        $statusLabelSep3,
+        $statusLabelCopy,
+        $statusLabelSep4,
+        $statusLabelFavorite
+    )
+
+    foreach ($statusLabel in $statusLabels) {
+        $statusStrip.Items.Add($statusLabel) | Out-Null
+    }
 
     ### FORM MAIN
 
