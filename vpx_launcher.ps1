@@ -6411,7 +6411,7 @@ function Get-IsVisualPinballRunning {
 # |_|  |_\__,_|_|_||_|
 #
 
-Get-IpdbRatings; return
+# Get-IpdbRatings; return
 
 if (Get-IsVisualPinballRunning) {
     Write-Warning 'Visual Pinball process is already running. Please close it before running this launcher.'
