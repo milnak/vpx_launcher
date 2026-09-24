@@ -6,8 +6,6 @@ Param(
     [string]$Filter = '*.vpx'
 )
 
-Import-Module "./StructuredStorage.psm1"
-
 #
 # MAIN
 #
@@ -15,7 +13,9 @@ Import-Module "./StructuredStorage.psm1"
 # '# Table Details'
 # ''
 
-Get-ChildItem -LiteralPath $TablePath -File -Filter $Filter -Recurse -Depth 1 | ForEach-Object {
+Get-ChildItem -LiteralPath $TablePath -File -Filter $Filter -Recurse -Depth 1 | ForEach-Object -Parallel {
+    Import-Module "./StructuredStorage.psm1"
+
     Write-Progress -Activity "Processing Tables" -Status $_.BaseName
     Read-VpxMetadata -Path $_.FullName
 }

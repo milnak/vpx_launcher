@@ -1,7 +1,7 @@
 [CmdletBinding()]
 Param(
     # Location to the VPinball EXE
-    [string]$PinballExe = (Resolve-Path 'VPinballX64.exe'),
+    [string]$PinballExe = (Resolve-Path 'VPinballX_GL64.exe'),
     # Folder containing VPX tables
     [string]$TablePath = (Resolve-Path 'Tables'),
     # Zero-based display number to use. Find numbers in Settings > System > Display
@@ -5712,7 +5712,8 @@ function Invoke-Game {
     $buttonLaunch.Text = 'Running'
 
     Write-Verbose "Launching: $tablePath"
-    $proc = Start-Process -FilePath $PinballExe -ArgumentList '-ExtMinimized', '-Play', ('"{0}"' -f $TablePath) -NoNewWindow -PassThru
+    # '-ExtMinimized',
+    $proc = Start-Process -FilePath $PinballExe -ArgumentList '-Play', ('"{0}"' -f $TablePath) -NoNewWindow -PassThru
 
     # Games take a while to load, so show a fake progress bar.
     for ($i = 0; $i -le $progressBar.Maximum - $progressBar.Minimum; $i++) {

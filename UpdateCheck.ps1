@@ -1,4 +1,4 @@
-Param([string]$Path = '.')
+﻿Param([string]$Path = '.')
 
 function Get-GithubUpdate {
     param (
@@ -27,7 +27,7 @@ function Get-GithubUpdate {
     }
 
     #  e.g. "v10.8.0-2051-28dd6c3"
-    $onlineVersion = @($json.tag_name)[0] -replace '^v',''
+    $onlineVersion = @($json.tag_name)[0] -replace '^v', ''
 
     @{
         OnlineVersion = $onlineVersion
@@ -45,13 +45,16 @@ function Show-UpdateResult {
         [Parameter(Mandatory)][scriptblock]$AssetFilter
     )
 
-    Write-Host -ForegroundColor Cyan "${Label}:"
-    'Local version:  {0} ({1})' -f $Result.LocalVersion, $Result.Path
-    'Online version: {0}' -f $Result.OnlineVersion
+    $localVersion = $Result.LocalVersion -replace '-', '.'
+    $onlineVersion = $Result.OnlineVersion -replace '-', '.'
 
-    if ($Result.LocalVersion -lt $Result.OnlineVersion) {
+    Write-Host -ForegroundColor Cyan "${Label}:"
+    'Local version:  {0} ({1})' -f $localVersion, $Result.Path
+    'Online version: {0}' -f $onlineVersion
+
+    if ($localVersion -lt $onlineVersion) {
         Write-Host -ForegroundColor Yellow "$Label update available (Extract to '$ExtractPath'):"
-        $Result.Assets | Where-Object $AssetFilter
+        $Result.Assets | Where-Object { $_ -like "*$($Result.OnlineVersion)*" } | Where-Object $AssetFilter
     }
     else {
         Write-Host -ForegroundColor Green 'Latest version installed.'
@@ -67,7 +70,7 @@ if ($result) {
     Show-UpdateResult `
         -Label 'Visual Pinball X' `
         -Result $result -ExtractPath $destination `
-        -AssetFilter { $_ -like '*/VPinballX-*-windows-x64-Release.zip' -and $_ -notlike '*-dev-third-party-*' }
+        -AssetFilter { $_ -like '*/VPinballX_GL-*-windows-x64-Release.zip' -and $_ -notlike '*-dev-third-party-*' }
 }
 
 ### Visual PinMAME
@@ -82,7 +85,7 @@ if ($result) {
     Show-UpdateResult `
         -Label 'Visual PinMAME' `
         -Result $result -ExtractPath $vpinmame_path `
-        -AssetFilter { $_ -like '*/VPinMAME-sc-*-win-x64.*' }
+        -AssetFilter { $_ -like '*/VPinMAME-sc-*-win-x64.zip' }
 }
 
 ### dmd-extensions
