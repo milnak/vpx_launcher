@@ -1,4 +1,5 @@
-﻿Param([string]$Path = '.')
+﻿[CmdletBinding()]
+Param([string]$Path = '.')
 
 function Get-GithubUpdate {
     param (
@@ -52,6 +53,13 @@ function Show-UpdateResult {
     'Local version:  {0} ({1})' -f $localVersion, $Result.Path
     'Online version: {0}' -f $onlineVersion
 
+    Write-Verbose "Comparing local version '$localVersion' with online version '$onlineVersion'."
+    Write-Verbose "Local version: '$localVersion'"
+    Write-Verbose "Online version: '$onlineVersion'"
+    Write-Verbose "Extract path: '$ExtractPath'"
+    Write-Verbose "Asset filter: '$AssetFilter'"
+    Write-Verbose "Assets: '$($Result.Assets | Out-String)'"
+
     if ($localVersion -lt $onlineVersion) {
         Write-Host -ForegroundColor Yellow "$Label update available (Extract to '$ExtractPath'):"
         $Result.Assets | Where-Object { $_ -like "*$($Result.OnlineVersion)*" } | Where-Object $AssetFilter
@@ -65,12 +73,12 @@ function Show-UpdateResult {
 ### Visual Pinball X
 
 $destination = Resolve-Path -LiteralPath $Path
-$result = Get-GithubUpdate -Path (Join-Path -Path $destination -ChildPath 'VPinballX64.exe') -Repo 'vpinball/vpinball'
+$result = Get-GithubUpdate -Path (Join-Path -Path $destination -ChildPath 'VPinballX_BGFX64.exe') -Repo 'vpinball/vpinball'
 if ($result) {
     Show-UpdateResult `
         -Label 'Visual Pinball X' `
         -Result $result -ExtractPath $destination `
-        -AssetFilter { $_ -like '*/VPinballX_GL-*-windows-x64-Release.zip' -and $_ -notlike '*-dev-third-party-*' }
+        -AssetFilter { $_ -like '*/VPinballX_BGFX-*-windows-x64-Release.zip'}
 }
 
 ### Visual PinMAME

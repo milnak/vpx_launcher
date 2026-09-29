@@ -1,9 +1,9 @@
 [CmdletBinding()]
 Param(
     # Location to the VPinball EXE
-    [string]$PinballExe = (Resolve-Path 'VPinballX_GL64.exe'),
+    [string]$PinballExe = './VPinballX_BGFX64.exe',
     # Folder containing VPX tables
-    [string]$TablePath = (Resolve-Path 'Tables'),
+    [string]$TablePath = './Tables',
     # Zero-based display number to use. Find numbers in Settings > System > Display
     [int]$Display = -1
 )
@@ -6420,8 +6420,15 @@ if (Get-IsVisualPinballRunning) {
 }
 
 # Verify paths.
-Get-Item -ErrorAction Stop -LiteralPath $PinballExe | Out-Null
-Get-Item -ErrorAction Stop -LiteralPath $TablePath | Out-Null
+if (-not (Test-Path -LiteralPath $PinballExe)) {
+    Write-Error "Pinball executable not found at path '$PinballExe'."
+    return
+}
+
+if (-not (Test-Path -LiteralPath $TablePath)) {
+    Write-Error "Table path not found at path '$TablePath'."
+    return
+}
 
 if ($Display -ne -1) {
     # Change display in INI file.

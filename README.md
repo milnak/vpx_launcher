@@ -12,6 +12,8 @@
 
 Download and copy `vpx_launcher.ps1` to your "Visual Pinball" root folder and run it.  That's about it!
 
+If you need assistance installing Visual Pinball, see the [instructions here](https://gist.github.com/milnak/4a185382dea8cbe4e8de11f0b8427558).
+
 ## Update Checker
 
 I've also created an update checker for Visual Pinball X and VPinMame. Just run "UpdateCheck.ps1" and provide it the path to your binaries. If a newer version is available,
