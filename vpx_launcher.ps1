@@ -5718,13 +5718,14 @@ function Invoke-Game {
     # Games take a while to load, so show a fake progress bar.
     for ($i = 0; $i -le $progressBar.Maximum - $progressBar.Minimum; $i++) {
         $progressBar.Value = $i
-        Start-Sleep -Milliseconds 50
+        Start-Sleep -Milliseconds 10
         if (Get-IsVisualPinballRunning) {
             # Visual Pinball exited immediately. maybe a game crashed or it started quickly.
             $progressBar.Value = $progressBar.Maximum
             break
         }
     }
+    Set-VisualPinballPlayerActive
 
     Write-Verbose 'Waiting for VPX to exit'
     $proc.WaitForExit()
@@ -6404,6 +6405,11 @@ Add-Type @'
 
 function Get-IsVisualPinballRunning {
     [bool]([win32]::FindWindow('VPPlayer', 'Visual Pinball Player') -ne [IntPtr]::Zero)
+}
+
+function Set-VisualPinballPlayerActive {
+    $wshell = New-Object -ComObject WScript.Shell
+    $wshell.AppActivate('Visual Pinball Player')
 }
 
 #  __  __      _
